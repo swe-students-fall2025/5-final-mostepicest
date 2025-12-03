@@ -1,11 +1,11 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect, url_for 
 
 app = Flask(__name__)
 
 
 @app.route("/")
 def home():
-    return render_template("portfolio.html")
+    return redirect(url_for("portfolio"))
 
 
 @app.route("/portfolio")
@@ -34,7 +34,6 @@ def portfolio():
     ]
 
     return render_template("portfolio.html", user=user, positions=positions)
-
 
 if __name__ == "__main__":
     app.run(debug=True)
