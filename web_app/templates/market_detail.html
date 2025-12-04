@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ market.question }} • PolyPaper{% endblock %}
+
+{% block content %}
+<section class="market-detail">
+  <a href="{{ url_for('markets') }}" class="back-link">← Back to markets</a>
+
+  <h1 class="page-title">{{ market.question }}</h1>
+  <p class="page-subtitle">
+    {{ market.category }} • {{ market.region }}
+  </p>
+
+  <div class="card">
+    <div class="card-main">
+      <div class="market-prices">
+        <span class="value-chip positive">
+          Yes {{ "%.0f"|format(market.yes_price * 100) }}%
+        </span>
+        <span class="value-chip negative">
+          No {{ "%.0f"|format((1 - market.yes_price) * 100) }}%
+        </span>
+      </div>
+
+      <p class="hint">
+        Trading actions will be wired up once the backend / API is ready.
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}

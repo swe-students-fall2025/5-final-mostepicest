@@ -33,15 +33,15 @@
        Portfolio
     </a>
 
-    <a href="{{ url_for('portfolio') + '#markets' }}"
-       class="{% if '/markets' in request.path %}active-tab{% endif %}">
-       Markets
-    </a>
+   <a href="{{ url_for('markets') }}"
+     class="{% if request.path.startswith('/markets') %}active-tab{% endif %}">
+     Markets
+  </a>
 
-    <a href="{{ url_for('portfolio') + '#watchlist' }}"
-       class="{% if '/watchlist' in request.path %}active-tab{% endif %}">
-       Watchlist
-    </a>
+  <a href="#"
+     class="{% if request.path.startswith('/watchlist') %}active-tab{% endif %}">
+     Watchlist
+  </a>
 </nav>
 
   <main class="page">
