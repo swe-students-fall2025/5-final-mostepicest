@@ -252,6 +252,7 @@ body {
   background: #ffffff;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
+  text-decoration: none;
 }
 
 .btn-outline:hover {
@@ -390,6 +391,16 @@ body {
 
 .market-cell {
   max-width: 360px;
+}
+
+.back-link {
+  text-decoration: none;
+  color: #6c4ef2; 
+  font-weight: 500;
+}
+
+.back-link:hover {
+  text-decoration: underline;
 }
 
 /*empty state*/
