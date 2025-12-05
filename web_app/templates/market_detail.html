@@ -5,26 +5,128 @@
 <section class="market-detail">
   <a href="{{ url_for('markets') }}" class="back-link">← Back to markets</a>
 
-  <h1 class="page-title">{{ market.question }}</h1>
-  <p class="page-subtitle">
-    {{ market.category }} • {{ market.region }}
-  </p>
-
-  <div class="card">
-    <div class="card-main">
-      <div class="market-prices">
-        <span class="value-chip positive">
-          Yes {{ "%.0f"|format(market.yes_price * 100) }}%
-        </span>
-        <span class="value-chip negative">
-          No {{ "%.0f"|format((1 - market.yes_price) * 100) }}%
-        </span>
-      </div>
-
-      <p class="hint">
-        Trading actions will be wired up once the backend / API is ready.
+  <header class="market-header">
+    <div class="market-header-main">
+      <h1 class="page-title">{{ market.question }}</h1>
+      <p class="page-subtitle">
+        {{ market.category }} • {{ market.region }}
       </p>
     </div>
-  </div>
+
+    <div class="market-header-meta">
+      <div class="meta-item">
+        <span class="label">24h volume</span>
+        <span class="value">${{ "%.0f"|format(market.volume_24h) }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="label">Market ID</span>
+        <span class="value">#{{ market.id }}</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="market-layout">
+    <!-- market summary and chart history -->
+    <div class="market-left">
+      <div class="card market-summary-card">
+        <div class="card-main market-summary-main">
+          <div class="market-prices">
+            <span class="value-chip positive">
+              Yes {{ "%.0f"|format(market.yes_price * 100) }}%
+            </span>
+            <span class="value-chip negative">
+              No {{ "%.0f"|format((1 - market.yes_price) * 100) }}%
+            </span>
+          </div>
+          <p class="hint">
+            This market resolves based on an external real-world outcome.
+            You can practice taking either side using paper trades.
+          </p>
+        </div>
+      </div>
+
+      <div class="card market-history-card">
+        <div class="card-header">
+          <span class="card-title">Price history</span>
+          <span class="card-subtitle">Chart coming soon</span>
+        </div>
+        <div class="card-main chart-placeholder">
+          <span>Price chart will be added once data is wired up.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- trade ticket and other details -->
+    <div class="market-right">
+      <div class="card trade-ticket">
+        <div class="card-header">
+          <span class="card-title">Place a paper trade</span>
+        </div>
+        <div class="card-main">
+          <form class="trade-form" onsubmit="return false;">
+            <div class="field">
+              <label class="field-label">Direction</label>
+              <div class="toggle-group">
+                <button type="button" class="chip chip-active">Yes</button>
+                <button type="button" class="chip">No</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field-label">Amount to bet (USD)</label>
+              <div class="input-row">
+                <span class="prefix">$</span>
+                <input type="number" min="1" step="1" placeholder="100">
+              </div>
+            </div>
+
+            <div class="trade-summary">
+              <div>
+                <span class="label">Est. price</span>
+                <span class="value">
+                  ${{ "%.2f"|format(market.yes_price) }} / share
+                </span>
+              </div>
+              <div>
+                <span class="label">Est. payout</span>
+                <span class="value">$0.00</span>
+              </div>
+            </div>
+
+            <button type="button" class="btn-primary btn-full" disabled>
+              Place trade (mock)
+            </button>
+
+            <p class="hint">
+              This is a front-end preview only. Trading logic will be enabled
+              once the backend / API is connected.
+            </p>
+          </form>
+        </div>
+      </div>
+
+      <div class="card market-side-info">
+        <div class="card-header">
+          <span class="card-title">Market details</span>
+        </div>
+        <div class="card-main">
+          <ul class="meta-list">
+            <li>
+              <span class="label">Region</span>
+              <span class="value">{{ market.region }}</span>
+            </li>
+            <li>
+              <span class="label">Category</span>
+              <span class="value">{{ market.category }}</span>
+            </li>
+            <li>
+              <span class="label">Resolution</span>
+              <span class="value">TBD (will be defined by backend)</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
 </section>
 {% endblock %}
