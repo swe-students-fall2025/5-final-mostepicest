@@ -1,0 +1,69 @@
+name: API CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Lint, format, and test (api)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies using pipenv
+        run: |
+          pip install pipenv
+          pipenv install --deploy --system --dev
+
+      - name: Lint with pylint
+        run: |
+          pylint --exit-zero $(git ls-files '*.py')
+
+      - name: Check formatting with black
+        run: |
+          black --check .
+
+      - name: Run unit tests with coverage
+        run: |
+          pytest --cov=./ --cov-report=xml --cov-fail-under=0
+
+  docker:
+    name: Build and push Docker images
+    runs-on: ubuntu-latest
+    needs: test  # only run if the test job passes
+    if: github.ref == 'refs/heads/main'  # only on pushes to main
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker images
+        run: |
+          docker build -f api/Dockerfile.clob -t ${{ secrets.DOCKERHUB_USERNAME }}/clob_display:latest .
+          docker build -f api/Dockerfile.search -t ${{ secrets.DOCKERHUB_USERNAME }}/search_api:latest .
+          docker build -f api/Dockerfile.ws -t ${{ secrets.DOCKERHUB_USERNAME }}/ws_clob:latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/clob_display:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/search_api:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/ws_clob:latest

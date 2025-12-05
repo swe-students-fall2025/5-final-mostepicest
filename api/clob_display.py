@@ -1,3 +1,5 @@
+"Price fetch prior to buying for display purposes"
+
 import os
 from typing import List
 
@@ -25,12 +27,11 @@ Cache.DEFAULT_SETTINGS = {
     "cache": "aiocache.RedisCache",
     "endpoint": REDIS_HOST,
     "port": REDIS_PORT,
-    "ttl": 5,  # 5-second TTL for near real-time
+    "ttl": 10,
     "serializer": JsonSerializer(),
     "namespace": "clob",
 }
 
-# Read-only CLOB client
 client = ClobClient("https://clob.polymarket.com")
 
 
