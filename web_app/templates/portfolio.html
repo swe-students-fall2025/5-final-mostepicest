@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Portfolio • PolyPaper{% endblock %}
+
+{% block content %}
+
+<section class="portfolio-grid">
+  <div class="card portfolio-card">
+    <div class="card-header">
+      <span class="card-title">Portfolio</span>
+      <span class="card-subtitle">Today</span>
+    </div>
+    <div class="card-main">
+      <div class="card-value">
+        ${{ "%.2f"|format(user.balance) }}
+      </div>
+      <div class="card-change {{ 'positive' if user.change_today >= 0 else 'negative' }}">
+        {% if user.change_today >= 0 %}▲{% else %}▼{% endif %}
+        ${{ "%.2f"|format(user.change_today) }}
+      </div>
+    </div>
+    <button class="btn-outline">Withdraw</button>
+  </div>
+
+  <div class="card pl-card">
+    <div class="card-header">
+      <span class="card-title">Profit/Loss</span>
+      <span class="card-subtitle">Past Month</span>
+    </div>
+    <div class="card-main">
+      <div class="card-value">$0.00</div>
+    </div>
+    <div class="time-toggle">
+      <button class="chip chip-active">1D</button>
+      <button class="chip">1W</button>
+      <button class="chip">1M</button>
+      <button class="chip">ALL</button>
+    </div>
+  </div>
+</section>
+
+<section class="positions-section">
+  <div class="positions-header">
+    <div class="positions-tabs">
+      <button class="tab tab-active">Positions</button>
+      <button class="tab">Open orders</button>
+      <button class="tab">History</button>
+    </div>
+
+    <div class="positions-search">
+      <input type="text" placeholder="Search positions">
+      <button class="btn-filter">Current value ▾</button>
+    </div>
+  </div>
+
+  {% if positions %}
+  <table class="positions-table">
+    <thead>
+      <tr>
+        <th>Market</th>
+        <th>Avg → Now</th>
+        <th>Bet</th>
+        <th>To win</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in positions %}
+      {% set value = p.bet_amount + p.to_win %}
+      <tr>
+        <td>{{ p.market }}</td>
+        <td>{{ "%.2f"|format(p.avg_price) }} → {{ "%.2f"|format(p.current_price) }}</td>
+        <td>${{ "%.2f"|format(p.bet_amount) }}</td>
+        <td>
+            <span class="value-chip {{ 'positive' if p.to_win >= 0 else 'negative' }}">
+                {{ '+' if p.to_win >= 0 else '' }}${{ "%.2f"|format(p.to_win) }}
+            </span>
+        </td>
+        <td>${{ "%.2f"|format(value) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% else %}
+  <div class="empty-state">
+    <p>No positions found.</p>
+    <p class="hint">Search for a market and place your first paper trade.</p>
+  </div>
+  {% endif %}
+</section>
+
+{% endblock %}

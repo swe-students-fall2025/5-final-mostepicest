@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}PolyPaper{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <header class="topbar">
+    <div class="brand">
+        <div class="brand-mark">P</div>
+        <div class="brand-text">
+        <div class="brand-name">PolyPaper</div>
+        <div class="brand-tagline">Practice trading event contracts—without the risk.</div>
+        </div>
+    </div>
+
+    <div class="topbar-right">
+        <div class="portfolio-summary">
+        <span class="label">Portfolio</span>
+        <span class="value">$0.00</span>
+        </div>
+        <div class="cash-summary">
+        <span class="label">Cash</span>
+        <span class="value">$0.00</span>
+        </div>
+    </div>
+    </header>
+
+  <nav class="nav-tabs">
+    <a href="{{ url_for('portfolio') }}"
+       class="{% if request.path == '/portfolio' %}active-tab{% endif %}">
+       Portfolio
+    </a>
+
+   <a href="{{ url_for('markets') }}"
+     class="{% if request.path.startswith('/markets') %}active-tab{% endif %}">
+     Markets
+  </a>
+
+  <a href="#"
+     class="{% if request.path.startswith('/watchlist') %}active-tab{% endif %}">
+     Watchlist
+  </a>
+</nav>
+
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
