@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies using pipenv
         run: |
           pip install pipenv
-          pipenv install --deploy --system --dev
+          pipenv install --deploy --dev
 
       - name: Lint with pylint
         run: |
