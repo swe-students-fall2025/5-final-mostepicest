@@ -64,9 +64,9 @@ def test_market_detail_page_loads():
     assert resp.status_code == 200
     html = resp.data.decode("utf-8")
 
-    #page content
+    # page content
     assert "Will BTC close above $80k on Dec 31, 2025?" in html
     assert "Crypto" in html
 
-    #trade ticket title
+    # trade ticket title
     assert "Place a paper trade" in html
