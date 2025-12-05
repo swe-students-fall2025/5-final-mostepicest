@@ -1,0 +1,55 @@
+services:
+  redis:
+    image: redis:7
+    container_name: api_redis
+    ports:
+      - "6379:6379"
+    command: [
+      "redis-server",
+      "--maxmemory", "256mb",
+      "--maxmemory-policy", "allkeys-lru"
+    ]
+    mem_limit: 512m
+    restart: unless-stopped
+
+  search_api:
+    build:
+      context: .
+      dockerfile: Dockerfile.search
+    container_name: search_api
+    ports:
+      - "8001:8001"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  clob_display:
+    build:
+      context: .
+      dockerfile: Dockerfile.clob
+    container_name: clob_display
+    ports:
+      - "8002:8002"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  ws_clob:
+    build:
+      context: .
+      dockerfile: Dockerfile.ws
+    container_name: ws_clob
+    ports:
+      - "8003:8003"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - redis
+    restart: unless-stopped
