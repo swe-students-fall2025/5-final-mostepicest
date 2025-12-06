@@ -1,4 +1,5 @@
-from flask import Flask, render_template, redirect, url_for, request, abort
+from flask import Flask, abort, redirect, render_template, request, url_for
+
 
 app = Flask(__name__)
 
@@ -92,8 +93,8 @@ def market_detail(market_id: int):
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    # Status_message lets the template show what would happen once we set up the MongoDB write up.
-    status_message = None  # Nothing for now
+    # status_message lets the template show what would happen once persistence is added.
+    status_message = None  # nothing for now
 
     if request.method == "POST":
         # Capture the fields we will later insert into the MongoDB users collection.
@@ -114,7 +115,7 @@ def register():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    # The status_message tells the user what happens after a real authentication check
+    # the status_message tells the user what happens after a real authentication check
     status_message = None
 
     if request.method == "POST":
@@ -127,7 +128,9 @@ def login():
             f"Login submission received for {submitted_email or 'your account'} - "
             "MongoDB lookup and password verification will come in a bit"
         )
-        return redirect(url_for("portfolio"))  # After login we get redirected to portfolio page
+        return redirect(
+            url_for("portfolio")
+        )  # Redirect to portfolio after login (until real auth exists)
 
     return render_template("login.html", status_message=status_message)
 
