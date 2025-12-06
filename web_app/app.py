@@ -125,7 +125,7 @@ def login():
         status_message = (
             "Login submission received-MongoDB lookup and password verification will come in a bit"
         )
-        return redirect(url_for("portfolio")) #after login we get redirected to portfolio page
+        return redirect(url_for("portfolio")) # After login we get redirected to portfolio page
     
     return render_template("login.html", status_message=status_message)
 
