@@ -1,11 +1,12 @@
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, abort, redirect, render_template, request, url_for
+
 
 app = Flask(__name__)
 
 
 @app.route("/")
 def home():
-    return redirect(url_for("portfolio"))
+    return redirect(url_for("login"))  # Home is changed to the login page
 
 
 @app.route("/portfolio")
@@ -88,6 +89,50 @@ def market_detail(market_id: int):
     if market is None:
         abort(404)
     return render_template("market_detail.html", market=market)
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    # status_message lets the template show what would happen once persistence is added.
+    status_message = None  # nothing for now
+
+    if request.method == "POST":
+        # Capture the fields we will later insert into the MongoDB users collection.
+        form_data = {
+            "email": request.form.get("email", "").strip(),
+            "username": request.form.get("username", "").strip(),
+            "password": request.form.get("password", ""),
+        }
+
+        # Placeholder response until we hook up the real thing
+        status_message = (
+            f"Received your details for {form_data['email'] or 'your account'} - "
+            "MongoDB insert will be added when we implement the database"
+        )
+
+    return render_template("register.html", status_message=status_message)
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    # the status_message tells the user what happens after a real authentication check
+    status_message = None
+
+    if request.method == "POST":
+        # Collect the credentials just like we will when we query MongoDB
+        submitted_email = request.form.get("email", "").strip()
+        submitted_password = request.form.get("password", "")
+
+        # Placeholder request
+        status_message = (
+            f"Login submission received for {submitted_email or 'your account'} - "
+            "MongoDB lookup and password verification will come in a bit"
+        )
+        return redirect(
+            url_for("portfolio")
+        )  # Redirect to portfolio after login (until real auth exists)
+
+    return render_template("login.html", status_message=status_message)
 
 
 if __name__ == "__main__":

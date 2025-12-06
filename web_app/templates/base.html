@@ -16,17 +16,26 @@
     </div>
 
     <div class="topbar-right">
+      {% if request.path.startswith('/login') or request.path.startswith('/register') %}
+        <div class="topbar-auth-actions">
+          <!-- Separate topbar section that allows modification to design -->
+          <a class="btn-outline btn-login-top" href="{{ url_for('login') }}">Login</a>
+          <a class="btn-register-top" href="{{ url_for('register') }}">Register</a>
+        </div>
+      {% else %}
         <div class="portfolio-summary">
-        <span class="label">Portfolio</span>
-        <span class="value">$0.00</span>
+          <span class="label">Portfolio</span>
+          <span class="value">$0.00</span>
         </div>
         <div class="cash-summary">
-        <span class="label">Cash</span>
-        <span class="value">$0.00</span>
+          <span class="label">Cash</span>
+          <span class="value">$0.00</span>
         </div>
+      {% endif %}
     </div>
     </header>
 
+  {% if not request.path.startswith('/login') and not request.path.startswith('/register') %}
   <nav class="nav-tabs">
     <a href="{{ url_for('portfolio') }}"
        class="{% if request.path == '/portfolio' %}active-tab{% endif %}">
@@ -42,7 +51,8 @@
      class="{% if request.path.startswith('/watchlist') %}active-tab{% endif %}">
      Watchlist
   </a>
-</nav>
+  </nav>
+  {% endif %}
 
   <main class="page">
     {% block content %}{% endblock %}
