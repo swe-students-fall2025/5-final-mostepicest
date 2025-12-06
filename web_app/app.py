@@ -92,8 +92,8 @@ def market_detail(market_id: int):
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    # status_message lets the template show what would happen once we set up the MongoDB write up.
-    status_message = None  # nothing for now
+    # Status_message lets the template show what would happen once we set up the MongoDB write up.
+    status_message = None  # Nothing for now
 
     if request.method == "POST":
         # Capture the fields we will later insert into the MongoDB users collection.
@@ -114,7 +114,7 @@ def register():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    # the status_message tells the user what happens after a real authentication check
+    # The status_message tells the user what happens after a real authentication check
     status_message = None
 
     if request.method == "POST":
