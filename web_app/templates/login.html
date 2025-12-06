@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Login • PolyPaper{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+<!-- Wrapper keeps hero copy and form aligned like the registration page. -->
+<section class="auth-hero">
+    <div class="auth-hero-text">
+        <!-- Clear headline so users know this is the login page. -->
+        <h1>Welcome back to PolyPaper</h1>
+        <!-- Enter username and password -->
+        <p class="auth-subtitle">Enter the same email and password you registered with</p>
+
+        <!-- Quick reminders of what signing in will unlock. -->
+        <ul class="auth-benefits">
+            <li>Resume your practice portfolio across sessions</li>
+            <li>See your open positions and watchlists tied to your account.</li>
+        </ul>
+    </div>
+
+    <!-- Login card that posts credentials; backend will validate against MongoDB later. -->
+    <div class="card auth-card">
+        <div class="card-header auth-header">
+            <!-- title makes the card purpose obvious. -->
+            <span class="card-title">Login</span>
+             <!-- Subtitle reminds where the data will be checked. -->
+            <span class="card-subtitle">Sign in to view your portfolio.</span>
+        </div>
+
+        {% if status_message %}
+        <!-- Shows whatever the backend reports (just a placeholder for now)-->
+        <div class="status-banner">{{ status_message }}</div>
+        {% endif %}
+
+        <!-- Form posts back to /login so the flask route can handle the authorization later-->
+        <form class="auth-form" method="post" action="{{ url_for('login') }}">
+            <!-- Email identification we will fetch later-->
+            <label class="form-field">
+                <span class="field-label">Email</span>
+                <input type="email" name="email" placeholder="you@example.com" required>
+            </label>
+            <!-- Password input to match against stored hash later-->
+            <label class="form-field">
+                <span class="field-label">Password</span>
+                <input type="password" name="password" placeholder="Your password" required>
+            </label>
+            <!-- submit triggers the palceholder response for right now and real authentication later-->
+            <button class="btn-primary" type="submit">Log in</button>
+
+            <!-- quick link to registration so new users can sign up first-->
+            <p class="auth-meta">New here? <a href="{{ url_for('register') }}">Create an account</a>.</p>
+        </form>
+    </div>
+</section>
+</div>
+
+{% endblock %}

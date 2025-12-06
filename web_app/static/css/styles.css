@@ -260,6 +260,33 @@ body {
   border-color: #c7d2fe;
 }
 
+/*auth buttons in topbar on login/register pages*/
+.topbar-auth-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-login-top {
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+
+.btn-register-top {
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: var(--accent-dark);
+  color: #ffffff;
+  border: 1px solid var(--accent-dark);
+  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.25);
+  text-decoration: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.btn-register-top:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(79, 70, 229, 0.3);
+}
+
 .time-toggle {
   display: flex;
   gap: 6px;
@@ -416,6 +443,147 @@ body {
   font-size: 13px;
 }
 
+/*auth shell centers login/register content*/
+.auth-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 0;
+}
+
+/*auth layout*/
+.auth-hero {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 26px;
+  align-items: start;
+  margin-top: 14px;
+}
+
+.auth-hero h1 {
+  font-size: 28px;
+  margin-bottom: 10px;
+  color: #111827;
+}
+
+.auth-subtitle {
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  max-width: 620px;
+  line-height: 1.5;
+}
+
+.auth-benefits {
+  list-style: disc;
+  padding-left: 18px;
+  color: #1f2352;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.auth-card {
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.auth-header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.field-label {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.form-field input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  font-size: 14px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.form-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+
+.field-note {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.btn-primary {
+  display: inline-block;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: var(--accent-dark);
+  color: white;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.28);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(99, 102, 241, 0.32);
+}
+
+.btn-primary[disabled] {
+  opacity: 0.6;
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}
+
+.auth-meta {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.auth-meta a {
+  color: var(--accent-dark);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-meta a:hover {
+  text-decoration: underline;
+}
+
+.status-banner {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #312e81;
+  font-size: 13px;
+  margin-bottom: 10px;
+  border: 1px solid #c7d2fe;
+}
+
 /*market detail layout*/
 .market-detail {
   max-width: 1100px;
@@ -532,20 +700,6 @@ body {
   font-weight: 600;
 }
 
-.btn-primary {
-  border: none;
-  border-radius: 999px;
-  padding: 0.6rem 1.4rem;
-  font-weight: 600;
-  background: #6c4ef2;
-  color: white;
-  cursor: pointer;
-}
-.btn-primary[disabled] {
-  opacity: 0.6;
-  cursor: default;
-}
-
 .btn-full {
   width: 100%;
 }
@@ -583,6 +737,10 @@ body {
     text-align: left;
     flex-direction: row;
     gap: 1.5rem;
+  }
+
+  .auth-hero {
+    grid-template-columns: 1fr;
   }
 }
 
