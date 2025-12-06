@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return redirect(url_for("login")) # Home is changed to the login page 
+    return redirect(url_for("login"))  # Home is changed to the login page
 
 
 @app.route("/portfolio")
@@ -93,7 +93,7 @@ def market_detail(market_id: int):
 @app.route("/register", methods=["GET", "POST"])
 def register():
     # status_message lets the template show what would happen once we set up the MongoDB write up.
-    status_message = None # nothing for now
+    status_message = None  # nothing for now
 
     if request.method == "POST":
         # Capture the fields we will later insert into the MongoDB users collection.
@@ -105,9 +105,10 @@ def register():
 
         # Placeholder response until we hook up the real thing
         status_message = (
-            "Received your details-MongoDB insert will be added when we implement the database"
+            f"Received your details for {form_data['email'] or 'your account'} - "
+            "MongoDB insert will be added when we implement the database"
         )
-    
+
     return render_template("register.html", status_message=status_message)
 
 
@@ -123,10 +124,11 @@ def login():
 
         # Placeholder request
         status_message = (
-            "Login submission received-MongoDB lookup and password verification will come in a bit"
+            f"Login submission received for {submitted_email or 'your account'} - "
+            "MongoDB lookup and password verification will come in a bit"
         )
-        return redirect(url_for("portfolio")) # After login we get redirected to portfolio page
-    
+        return redirect(url_for("portfolio"))  # After login we get redirected to portfolio page
+
     return render_template("login.html", status_message=status_message)
 
 
