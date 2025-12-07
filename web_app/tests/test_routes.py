@@ -502,6 +502,182 @@ class TestMarketDetail:
 
 
 # =============================================================================
+# SETTINGS TESTS
+# =============================================================================
+
+
+class TestSettings:
+    """Tests for the settings route (/settings)."""
+
+    def test_settings_unauthenticated_redirects_to_login(self, client):
+        """Unauthenticated user should be redirected to login."""
+        response = client.get("/settings", follow_redirects=False)
+        assert response.status_code in (301, 302)
+        assert "/login" in response.location
+
+    def test_settings_authenticated_shows_form(self, auth_client):
+        """Authenticated user should see settings form."""
+        response = auth_client.get("/settings")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Settings" in html or "Profile Settings" in html
+        assert "Email" in html
+        assert "Username" in html
+
+    def test_settings_post_valid_username_updates_successfully(
+        self, app, auth_client, sample_user_data
+    ):
+        """POST /settings with valid username should update successfully."""
+        mock_db = app._mock_db
+
+        # Use side_effect to return different values based on query
+        # load_user queries by user_id, settings route queries by username
+        def find_one_side_effect(query):
+            if "user_id" in query:
+                return sample_user_data
+            elif "username" in query:
+                return None  # Username not taken
+            return None
+
+        mock_db.users.find_one.side_effect = find_one_side_effect
+        mock_db.users.update_one.return_value = MagicMock()
+
+        response = auth_client.post(
+            "/settings",
+            data={"username": "newusername"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code in (301, 302)
+        assert "/settings" in response.location
+        mock_db.users.update_one.assert_called_once()
+        # Verify update_one was called with correct arguments
+        call_args = mock_db.users.update_one.call_args
+        assert call_args[0][0]["user_id"] == "test-user-id-12345"
+        assert call_args[0][1]["$set"]["username"] == "newusername"
+
+    def test_settings_post_empty_username_shows_error(self, auth_client):
+        """POST /settings with empty username should show error."""
+        response = auth_client.post("/settings", data={"username": ""})
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Username is required" in html
+
+    def test_settings_post_username_too_short_shows_error(self, auth_client):
+        """POST /settings with username < 3 chars should show error."""
+        response = auth_client.post("/settings", data={"username": "ab"})
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Username must be at least 3 characters" in html
+
+    def test_settings_post_username_too_long_shows_error(self, auth_client):
+        """POST /settings with username > 24 chars should show error."""
+        long_username = "a" * 25
+        response = auth_client.post("/settings", data={"username": long_username})
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Username cannot exceed 24 characters" in html
+
+    def test_settings_post_username_already_taken_shows_error(
+        self, app, auth_client, sample_user_data
+    ):
+        """POST /settings with existing username should show error."""
+        mock_db = app._mock_db
+
+        # Use side_effect to return different values based on query
+        def find_one_side_effect(query):
+            if "user_id" in query:
+                return sample_user_data
+            elif "username" in query:
+                return {
+                    "user_id": "different-user-id",
+                    "username": "takenusername",
+                    "email": "other@example.com",
+                    "group_id": 0,
+                }
+            return None
+
+        mock_db.users.find_one.side_effect = find_one_side_effect
+
+        response = auth_client.post("/settings", data={"username": "takenusername"})
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Username is already taken" in html
+        # Verify update_one was not called
+        mock_db.users.update_one.assert_not_called()
+
+    def test_settings_post_same_username_allowed(
+        self, app, auth_client, sample_user_data
+    ):
+        """POST /settings with same username as current user should be allowed."""
+        mock_db = app._mock_db
+
+        # Use side_effect to return different values based on query
+        def find_one_side_effect(query):
+            if "user_id" in query:
+                return sample_user_data
+            elif "username" in query:
+                return sample_user_data
+            return None
+
+        mock_db.users.find_one.side_effect = find_one_side_effect
+        mock_db.users.update_one.return_value = MagicMock()
+
+        response = auth_client.post("/settings", data={"username": "testuser"})
+        # Should succeed (same username is allowed)
+        assert response.status_code in (200, 301, 302)
+        # update_one should be called even with same username
+        mock_db.users.update_one.assert_called_once()
+
+    def test_settings_post_database_error_shows_error(
+        self, app, auth_client, sample_user_data
+    ):
+        """POST /settings with database error should show error."""
+        mock_db = app._mock_db
+
+        # Use side_effect to return different values based on query
+        def find_one_side_effect(query):
+            if "user_id" in query:
+                return sample_user_data
+            elif "username" in query:
+                return None
+            return None
+
+        mock_db.users.find_one.side_effect = find_one_side_effect
+        mock_db.users.update_one.side_effect = Exception("Database connection failed")
+
+        response = auth_client.post("/settings", data={"username": "newusername"})
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Error updating username" in html
+
+    def test_settings_post_success_flash_message(
+        self, app, auth_client, sample_user_data
+    ):
+        """POST /settings with valid username should show success message."""
+        mock_db = app._mock_db
+
+        # Use side_effect to return different values based on query
+        def find_one_side_effect(query):
+            if "user_id" in query:
+                return sample_user_data
+            elif "username" in query:
+                return None
+            return None
+
+        mock_db.users.find_one.side_effect = find_one_side_effect
+        mock_db.users.update_one.return_value = MagicMock()
+
+        response = auth_client.post(
+            "/settings", data={"username": "newusername"}, follow_redirects=True
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        # Check for success message in flashed messages
+        assert "Username updated successfully" in html or "success" in html.lower()
+
+
+# =============================================================================
 # USER LOADER TESTS
 # =============================================================================
 
