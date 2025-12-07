@@ -141,7 +141,7 @@ def login():
     return render_template("login.html", status_message=status_message)
 
 
-# New settings route 
+# New settings route
 @app.route("/settings")
 def settings():
     # Placeholder settings page until Mongo-backed profiles exist.
@@ -150,7 +150,7 @@ def settings():
 
 @app.route("/logout")
 def logout():
-    # Placeholder logout send the user back to the login page after the button is clicked.
+    # Placeholder logout sends the user back to login page after the button is clicked.
     return redirect(url_for("login"))
 
 
