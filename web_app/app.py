@@ -29,6 +29,7 @@ except Exception as e:
     print(f"Error connecting to MongoDB: {e}")
     raise e
 
+
 class User(flask_login.UserMixin):
     def __init__(self, user_id, email, username, group_id):
         self.id = user_id
@@ -36,16 +37,17 @@ class User(flask_login.UserMixin):
         self.username = username
         self.group_id = group_id
 
+
 @login_manager.user_loader
 def load_user(user_id):
     try:
         response = db.users.find_one({"user_id": user_id})
         if response is not None:
             return User(
-                user_id = response["user_id"],
-                email = response["email"],
-                username = response["username"],
-                group_id = response["group_id"],
+                user_id=response["user_id"],
+                email=response["email"],
+                username=response["username"],
+                group_id=response["group_id"],
             )
         return None
     except Exception as e:
@@ -69,7 +71,7 @@ def register():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
         confirm_password = request.form.get("confirm_password", "").strip()
-        
+
         if not email:
             flash("Email is required", "error")
             return render_template("register.html")
@@ -82,19 +84,19 @@ def register():
         if password != confirm_password:
             flash("Passwords do not match", "error")
             return render_template("register.html")
-        
+
         # Check if email is already in use
         existing_email = db.users.find_one({"email": email})
         if existing_email:
             flash("Email is already registered", "error")
             return render_template("register.html")
-        
+
         # Check if username is already in use
         existing_username = db.users.find_one({"username": username})
         if existing_username:
             flash("Username is already taken", "error")
             return render_template("register.html")
-        
+
         # Validate password complexity
         # Password must contain: at least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character
         if len(password) < 8:
@@ -110,10 +112,13 @@ def register():
             flash("Password must contain at least one number", "error")
             return render_template("register.html")
         if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-            flash("Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>)", "error")
+            flash(
+                'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)',
+                "error",
+            )
             return render_template("register.html")
-            
-        '''MongoDB `users` collection schema
+
+        """MongoDB `users` collection schema
         users:
             user_id: uuid,
             email: string,
@@ -122,19 +127,21 @@ def register():
             group_id: uuid,
             created_at: UTC timestamp,
             deleted_at: UTC timestamp,
-        '''
+        """
         new_user_data = {
             "user_id": str(uuid.uuid4()),
             "email": email,
             "username": username,
             "password": password,
-            "group_id": 0, # placeholder until we implement groups
+            "group_id": 0,  # placeholder until we implement groups
             "created_at": datetime.now(timezone.utc),
             "deleted_at": None,
         }
 
         # User passwords are stored as hashes in the database
-        password_hash = bcrypt.generate_password_hash(new_user_data["password"]).decode("utf-8")
+        password_hash = bcrypt.generate_password_hash(new_user_data["password"]).decode(
+            "utf-8"
+        )
         new_user_data["password"] = password_hash
 
         try:
@@ -145,14 +152,19 @@ def register():
             return render_template("register.html")
 
         # Log the user in using Flask-Login
-        flask_login.login_user(User(
-            user_id = new_user_data["user_id"],
-            email = email,
-            username = username,
-            group_id = 0, # placeholder until we implement groups
-        ))
+        flask_login.login_user(
+            User(
+                user_id=new_user_data["user_id"],
+                email=email,
+                username=username,
+                group_id=0,  # placeholder until we implement groups
+            )
+        )
 
-        flash(f"{new_user_data['username']} account has been created successfully", "success")
+        flash(
+            f"{new_user_data['username']} account has been created successfully",
+            "success",
+        )
         return redirect(url_for("portfolio"))
 
     return render_template("register.html")
@@ -167,12 +179,14 @@ def login():
         # Check if the user exists and the password is correct
         user = db.users.find_one({"email": email})
         if user and bcrypt.check_password_hash(user["password"], password):
-            flask_login.login_user(User(
-                user_id = user["user_id"],
-                email = email,
-                username = user["username"],
-                group_id = user["group_id"],
-            ))
+            flask_login.login_user(
+                User(
+                    user_id=user["user_id"],
+                    email=email,
+                    username=user["username"],
+                    group_id=user["group_id"],
+                )
+            )
             return redirect(url_for("portfolio"))
         else:
             flash("Invalid email or password", "error")
@@ -246,6 +260,7 @@ ALL_MARKETS = [
     },
 ]
 
+
 @app.route("/markets")
 @flask_login.login_required
 def markets():
@@ -263,6 +278,7 @@ def markets():
 
     return render_template("markets.html", markets=markets, query=q)
 
+
 @app.route("/markets/<int:market_id>")
 @flask_login.login_required
 def market_detail(market_id: int):
@@ -270,6 +286,7 @@ def market_detail(market_id: int):
     if market is None:
         abort(404)
     return render_template("market_detail.html", market=market)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
