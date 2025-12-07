@@ -61,9 +61,9 @@ jobs:
 
       - name: Build and push Docker images
         run: |
-          docker build -f api/Dockerfile.clob -t ${{ secrets.DOCKERHUB_USERNAME }}/clob_display:latest .
-          docker build -f api/Dockerfile.search -t ${{ secrets.DOCKERHUB_USERNAME }}/search_api:latest .
-          docker build -f api/Dockerfile.ws -t ${{ secrets.DOCKERHUB_USERNAME }}/ws_clob:latest .
+          docker build -f api/Dockerfile.clob -t ${{ secrets.DOCKERHUB_USERNAME }}/clob_display:latest api
+          docker build -f api/Dockerfile.search -t ${{ secrets.DOCKERHUB_USERNAME }}/search_api:latest api
+          docker build -f api/Dockerfile.ws -t ${{ secrets.DOCKERHUB_USERNAME }}/ws_clob:latest api
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/clob_display:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/search_api:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/ws_clob:latest
