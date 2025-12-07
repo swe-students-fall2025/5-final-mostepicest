@@ -8,6 +8,7 @@ flask = "*"
 flask-login = "*"
 pymongo = "*"
 python-dotenv = "*"
+flask_bcrypt = "*"
 
 [dev-packages]
 pytest-flask = "*"
