@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Settings • PolyPaper{% endblock %}
+
+{% block content %}
+<section class="settings-page">
+  <h1>Profile Settings</h1>
+
+  <div class="settings-card">
+    <form class="settings-form" id="settings-form" method="POST" action="{{ url_for('settings') }}">
+      <!-- Email shows the current address. -->
+      <label class="settings-field">
+        <span class="field-label">Email</span>
+        <input type="email" name="email" value="{{ current_user.email }}" readonly>
+      </label>
+
+      <!-- Username can be edited; validation handled in JS for length constraints. -->
+      <label class="settings-field">
+        <span class="field-label">Username</span>
+        <input
+          type="text"
+          name="username"
+          value="{{ current_user.username }}"
+          minlength="3"
+          maxlength="24"
+          required
+        >
+        <small class="field-note validation-note" data-for="username"></small>
+      </label>
+
+      <!-- Save CTA stays disabled until form changes/validates; enabled via JS. -->
+      <button class="btn-primary btn-save disabled" type="submit" disabled>Save changes</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

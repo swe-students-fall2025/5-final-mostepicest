@@ -206,6 +206,7 @@ def logout():
 @app.route("/portfolio")
 @flask_login.login_required
 def portfolio():
+    # Placeholder until portfolio is implemented
     user = {
         "username": flask_login.current_user.username,
         "balance": 1000.00,
@@ -229,7 +230,7 @@ def portfolio():
         },
     ]
 
-    return render_template("portfolio.html", user=user, positions=positions)
+    return render_template("portfolio.html", positions=positions, current_user=user)
 
 
 # TEMP shared mock data
@@ -286,6 +287,52 @@ def market_detail(market_id: int):
     if market is None:
         abort(404)
     return render_template("market_detail.html", market=market)
+
+
+@app.route("/settings", methods=["GET", "POST"])
+@flask_login.login_required
+def settings():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+
+        # Validate username
+        if not username:
+            flash("Username is required", "error")
+            return render_template("settings.html")
+
+        if len(username) < 3:
+            flash("Username must be at least 3 characters", "error")
+            return render_template("settings.html")
+
+        if len(username) > 24:
+            flash("Username cannot exceed 24 characters", "error")
+            return render_template("settings.html")
+
+        # Check if username is already taken by another user
+        existing_user = db.users.find_one({"username": username})
+        if existing_user and existing_user["user_id"] != flask_login.current_user.id:
+            flash("Username is already taken", "error")
+            return render_template("settings.html")
+
+        # Update username in database
+        try:
+            db.users.update_one(
+                {"user_id": flask_login.current_user.id},
+                {"$set": {"username": username}},
+            )
+
+            # Update the current user object
+            flask_login.current_user.username = username
+
+            flash("Username updated successfully", "success")
+            return redirect(url_for("settings"))
+        except Exception as e:
+            print(f"Error updating username: {e}")
+            flash(f"Error updating username: {str(e)}", "error")
+            return render_template("settings.html")
+
+    # GET request - render settings page
+    return render_template("settings.html")
 
 
 if __name__ == "__main__":

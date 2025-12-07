@@ -16,13 +16,7 @@
     </div>
 
     <div class="topbar-right">
-      {% if request.path.startswith('/login') or request.path.startswith('/register') %}
-        <div class="topbar-auth-actions">
-          <!-- Separate topbar section that allows modification to design -->
-          <a class="btn-outline btn-login-top" href="{{ url_for('login') }}">Login</a>
-          <a class="btn-register-top" href="{{ url_for('register') }}">Register</a>
-        </div>
-      {% else %}
+      {% if not request.path.startswith('/login') and not request.path.startswith('/register') %}
         <div class="portfolio-summary">
           <span class="label">Portfolio</span>
           <span class="value">$0.00</span>
@@ -31,7 +25,26 @@
           <span class="label">Cash</span>
           <span class="value">$0.00</span>
         </div>
-        <a class="btn-outline btn-logout" href="{{ url_for('logout') }}">Logout</a>
+        <div class="profile-menu">
+          <button class="profile-trigger" type="button" aria-label="Open settings menu">
+            <span class="profile-avatar">{{ (current_user.username)[:1]|upper }}</span>
+            <span class="profile-hamburger">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
+          <div class="profile-dropdown">
+            <div class="profile-header">
+              <div class="profile-avatar large">{{ (current_user.username)[:1]|upper }}</div>
+              <div class="profile-username">{{ current_user.username }}</div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="{{ url_for('settings') }}">Settings</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item logout-item" href="{{ url_for('logout') }}">Log out</a>
+          </div>
+        </div>
       {% endif %}
     </div>
     </header>
