@@ -22,47 +22,33 @@
      <div class="card auth-card">
         <div class="card-header auth-header">
             <span class="card-title">Register</span>
-            <!-- subtext clarifies that persistence lands in MongoDB later, change later! -->
-            <span class="card-subtitle">We'll insert you into the users collection soon.</span>
         </div>
 
-        {% if status_message %}
-        <!-- feedback slot to echo what the backend (or future Mongo write) returns.-->
-         <div class="status-banner">{{ status_message }}</div>
-        {% endif %}
-
-        <!-- Form posts to /register so we can later validate and write to mongodb-->
+        <!-- Form posts to /register so we can validate and write to mongodb-->
         <form class ="auth-form" method="post" action="{{ url_for('register') }}">
-            <!-- Email helps us contact users and wil lbe indexed in mongo-->
             <label class="form-field">
                 <span class="field-label">Email</span>
                 <input type="email" name="email" placeholder="you@example.com" required>
-                <small class="field-note">Used for alerts and login recovery; stored in Mongo</small>
             </label>
 
-            <!-- Username is how users will appear in the app and map to mongo-->
             <label class="form-field">
                 <span class="field-label">Username</span>
-                <input type="text" name="username" placeholder="Papertrader" minlength="3" required>
+                <input type="text" name="username" placeholder="username" required>
             </label>
 
-            <!-- password hash soon-->
             <label class="form-field">
                 <span class="field-label">Password</span>
                 <input type="password" name="password" placeholder="At least 8 characters" minlength="8" required>
             </label>
 
-            <!-- confirmation helps us catch typos-->
             <label class="form-field">
                 <span class="field-label">Confirm password</span>
                 <input type="password" name="confirm_password" placeholder="Retype your password" minlength="8" required>
             </label>
             
-            <!-- submission CTA kicks off validation-->
             <button class="btn-primary" type="submit">Create account</button>
 
-            <!-- helper link encourage return visits once login is built-->
-             <p class="auth-meta">Already registered? <a href="{{ url_for('login') }}">Log in</a>.</p>
+            <p class="auth-meta">Already registered? <a href="{{ url_for('login') }}">Log in</a>.</p>
         </form>
      </div>
 </section>
