@@ -774,3 +774,41 @@ body {
     padding: 18px 16px 32px;
   }
 }
+
+/* Flash messages */
+.flash-messages {
+  max-width: 1100px;
+  margin: 0 auto 20px;
+}
+
+.flash-message {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+/* Error messages (default) */
+.flash-message.flash-error,
+.flash-message {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.1);
+}
+
+/* Success messages */
+.flash-message.flash-success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.1);
+}
+
+/* Info messages */
+.flash-message.flash-info {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
