@@ -9,6 +9,7 @@ from unittest.mock import patch, MagicMock
 # HOME ROUTE TESTS
 # =============================================================================
 
+
 class TestHomeRoute:
     """Tests for the home route (/)."""
 
@@ -29,6 +30,7 @@ class TestHomeRoute:
 # REGISTRATION TESTS
 # =============================================================================
 
+
 class TestRegistration:
     """Tests for the registration route (/register)."""
 
@@ -48,12 +50,16 @@ class TestRegistration:
         mock_db.users.find_one.return_value = None  # No existing user
         mock_db.users.insert_one.return_value = MagicMock()
 
-        response = client.post("/register", data={
-            "email": "newuser@example.com",
-            "username": "newuser",
-            "password": "ValidPass1!",
-            "confirm_password": "ValidPass1!"
-        }, follow_redirects=False)
+        response = client.post(
+            "/register",
+            data={
+                "email": "newuser@example.com",
+                "username": "newuser",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+            follow_redirects=False,
+        )
 
         assert response.status_code in (301, 302)
         assert "/portfolio" in response.location
@@ -61,48 +67,60 @@ class TestRegistration:
 
     def test_register_empty_email_shows_error(self, client):
         """POST /register with empty email should show error."""
-        response = client.post("/register", data={
-            "email": "",
-            "username": "testuser",
-            "password": "ValidPass1!",
-            "confirm_password": "ValidPass1!"
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "",
+                "username": "testuser",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Email is required" in html
 
     def test_register_empty_username_shows_error(self, client):
         """POST /register with empty username should show error."""
-        response = client.post("/register", data={
-            "email": "test@example.com",
-            "username": "",
-            "password": "ValidPass1!",
-            "confirm_password": "ValidPass1!"
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Username is required" in html
 
     def test_register_empty_password_shows_error(self, client):
         """POST /register with empty password should show error."""
-        response = client.post("/register", data={
-            "email": "test@example.com",
-            "username": "testuser",
-            "password": "",
-            "confirm_password": ""
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "",
+                "confirm_password": "",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Password is required" in html
 
     def test_register_password_mismatch_shows_error(self, client):
         """POST /register with mismatched passwords should show error."""
-        response = client.post("/register", data={
-            "email": "test@example.com",
-            "username": "testuser",
-            "password": "ValidPass1!",
-            "confirm_password": "DifferentPass1!"
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "ValidPass1!",
+                "confirm_password": "DifferentPass1!",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Passwords do not match" in html
@@ -112,12 +130,15 @@ class TestRegistration:
         mock_db = app._mock_db
         mock_db.users.find_one.return_value = {"email": "existing@example.com"}
 
-        response = client.post("/register", data={
-            "email": "existing@example.com",
-            "username": "newuser",
-            "password": "ValidPass1!",
-            "confirm_password": "ValidPass1!"
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "existing@example.com",
+                "username": "newuser",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Email is already registered" in html
@@ -125,16 +146,19 @@ class TestRegistration:
     def test_register_existing_username_shows_error(self, app, client):
         """POST /register with existing username should show error."""
         mock_db = app._mock_db
-        
+
         # First call (email check) returns None, second call (username check) returns user
         mock_db.users.find_one.side_effect = [None, {"username": "existinguser"}]
 
-        response = client.post("/register", data={
-            "email": "new@example.com",
-            "username": "existinguser",
-            "password": "ValidPass1!",
-            "confirm_password": "ValidPass1!"
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "new@example.com",
+                "username": "existinguser",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Username is already taken" in html
@@ -144,12 +168,15 @@ class TestRegistration:
         mock_db = app._mock_db
         mock_db.users.find_one.return_value = None
 
-        response = client.post("/register", data={
-            "email": "test@example.com",
-            "username": "testuser",
-            "password": "Short1!",
-            "confirm_password": "Short1!"
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "Short1!",
+                "confirm_password": "Short1!",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Password must be at least 8 characters long" in html
@@ -159,12 +186,15 @@ class TestRegistration:
         mock_db = app._mock_db
         mock_db.users.find_one.return_value = None
 
-        response = client.post("/register", data={
-            "email": "test@example.com",
-            "username": "testuser",
-            "password": "lowercase1!",
-            "confirm_password": "lowercase1!"
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "lowercase1!",
+                "confirm_password": "lowercase1!",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Password must contain at least one uppercase letter" in html
@@ -174,12 +204,15 @@ class TestRegistration:
         mock_db = app._mock_db
         mock_db.users.find_one.return_value = None
 
-        response = client.post("/register", data={
-            "email": "test@example.com",
-            "username": "testuser",
-            "password": "UPPERCASE1!",
-            "confirm_password": "UPPERCASE1!"
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "UPPERCASE1!",
+                "confirm_password": "UPPERCASE1!",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Password must contain at least one lowercase letter" in html
@@ -189,12 +222,15 @@ class TestRegistration:
         mock_db = app._mock_db
         mock_db.users.find_one.return_value = None
 
-        response = client.post("/register", data={
-            "email": "test@example.com",
-            "username": "testuser",
-            "password": "NoNumber!!",
-            "confirm_password": "NoNumber!!"
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "NoNumber!!",
+                "confirm_password": "NoNumber!!",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Password must contain at least one number" in html
@@ -204,12 +240,15 @@ class TestRegistration:
         mock_db = app._mock_db
         mock_db.users.find_one.return_value = None
 
-        response = client.post("/register", data={
-            "email": "test@example.com",
-            "username": "testuser",
-            "password": "NoSpecial1",
-            "confirm_password": "NoSpecial1"
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "NoSpecial1",
+                "confirm_password": "NoSpecial1",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Password must contain at least one special character" in html
@@ -220,12 +259,15 @@ class TestRegistration:
         mock_db.users.find_one.return_value = None
         mock_db.users.insert_one.side_effect = Exception("Database connection failed")
 
-        response = client.post("/register", data={
-            "email": "test@example.com",
-            "username": "testuser",
-            "password": "ValidPass1!",
-            "confirm_password": "ValidPass1!"
-        })
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Error creating account" in html
@@ -234,6 +276,7 @@ class TestRegistration:
 # =============================================================================
 # LOGIN TESTS
 # =============================================================================
+
 
 class TestLogin:
     """Tests for the login route (/login)."""
@@ -251,19 +294,20 @@ class TestLogin:
         """POST /login with valid credentials should redirect to portfolio."""
         mock_db = app._mock_db
         hashed_password = bcrypt.generate_password_hash("ValidPass1!").decode("utf-8")
-        
+
         mock_db.users.find_one.return_value = {
             "user_id": "test-user-id",
             "email": "test@example.com",
             "username": "testuser",
             "password": hashed_password,
-            "group_id": 0
+            "group_id": 0,
         }
 
-        response = client.post("/login", data={
-            "email": "test@example.com",
-            "password": "ValidPass1!"
-        }, follow_redirects=False)
+        response = client.post(
+            "/login",
+            data={"email": "test@example.com", "password": "ValidPass1!"},
+            follow_redirects=False,
+        )
 
         assert response.status_code in (301, 302)
         assert "/portfolio" in response.location
@@ -273,10 +317,10 @@ class TestLogin:
         mock_db = app._mock_db
         mock_db.users.find_one.return_value = None
 
-        response = client.post("/login", data={
-            "email": "nonexistent@example.com",
-            "password": "SomePassword1!"
-        })
+        response = client.post(
+            "/login",
+            data={"email": "nonexistent@example.com", "password": "SomePassword1!"},
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Invalid email or password" in html
@@ -285,19 +329,18 @@ class TestLogin:
         """POST /login with wrong password should show error."""
         mock_db = app._mock_db
         hashed_password = bcrypt.generate_password_hash("CorrectPass1!").decode("utf-8")
-        
+
         mock_db.users.find_one.return_value = {
             "user_id": "test-user-id",
             "email": "test@example.com",
             "username": "testuser",
             "password": hashed_password,
-            "group_id": 0
+            "group_id": 0,
         }
 
-        response = client.post("/login", data={
-            "email": "test@example.com",
-            "password": "WrongPassword1!"
-        })
+        response = client.post(
+            "/login", data={"email": "test@example.com", "password": "WrongPassword1!"}
+        )
         assert response.status_code == 200
         html = response.data.decode("utf-8")
         assert "Invalid email or password" in html
@@ -306,6 +349,7 @@ class TestLogin:
 # =============================================================================
 # LOGOUT TESTS
 # =============================================================================
+
 
 class TestLogout:
     """Tests for the logout route (/logout)."""
@@ -326,6 +370,7 @@ class TestLogout:
 # =============================================================================
 # PORTFOLIO TESTS
 # =============================================================================
+
 
 class TestPortfolio:
     """Tests for the portfolio route (/portfolio)."""
@@ -372,6 +417,7 @@ class TestPortfolio:
 # =============================================================================
 # MARKETS TESTS
 # =============================================================================
+
 
 class TestMarkets:
     """Tests for the markets route (/markets)."""
@@ -420,6 +466,7 @@ class TestMarkets:
 # MARKET DETAIL TESTS
 # =============================================================================
 
+
 class TestMarketDetail:
     """Tests for the market detail route (/markets/<id>)."""
 
@@ -458,19 +505,20 @@ class TestMarketDetail:
 # USER LOADER TESTS
 # =============================================================================
 
+
 class TestUserLoader:
     """Tests for the user_loader function."""
 
     def test_user_loader_returns_user_when_found(self, app):
         """user_loader should return User when user exists."""
         from web_app.app import load_user
-        
+
         mock_db = app._mock_db
         mock_db.users.find_one.return_value = {
             "user_id": "test-user-id",
             "email": "test@example.com",
             "username": "testuser",
-            "group_id": 0
+            "group_id": 0,
         }
 
         with app.app_context():
@@ -483,7 +531,7 @@ class TestUserLoader:
     def test_user_loader_returns_none_when_not_found(self, app):
         """user_loader should return None when user doesn't exist."""
         from web_app.app import load_user
-        
+
         mock_db = app._mock_db
         mock_db.users.find_one.return_value = None
 
@@ -494,7 +542,7 @@ class TestUserLoader:
     def test_user_loader_returns_none_on_exception(self, app):
         """user_loader should return None when exception occurs."""
         from web_app.app import load_user
-        
+
         mock_db = app._mock_db
         mock_db.users.find_one.side_effect = Exception("Database error")
 
@@ -507,6 +555,7 @@ class TestUserLoader:
 # USER CLASS TESTS
 # =============================================================================
 
+
 class TestUserClass:
     """Tests for the User class."""
 
@@ -515,10 +564,7 @@ class TestUserClass:
         from web_app.app import User
 
         user = User(
-            user_id="test-id",
-            email="test@example.com",
-            username="testuser",
-            group_id=1
+            user_id="test-id", email="test@example.com", username="testuser", group_id=1
         )
 
         assert user.id == "test-id"
@@ -532,10 +578,7 @@ class TestUserClass:
         import flask_login
 
         user = User(
-            user_id="test-id",
-            email="test@example.com",
-            username="testuser",
-            group_id=1
+            user_id="test-id", email="test@example.com", username="testuser", group_id=1
         )
 
         assert hasattr(user, "is_authenticated")
