@@ -287,6 +287,20 @@ body {
   box-shadow: 0 10px 22px rgba(79, 70, 229, 0.3);
 }
 
+.btn-logout {
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #dc2626;
+  border-color: #fecaca;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-logout:hover {
+  background: #fef2f2;
+  border-color: #dc2626;
+}
+
 .time-toggle {
   display: flex;
   gap: 6px;
