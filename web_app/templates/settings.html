@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Settings • PolyPaper{% endblock %}
+
+{% block content %}
+<section class="settings-page">
+  <h1>Profile Settings</h1>
+
+  <div class="settings-card">
+    <form class="settings-form" id="settings-form">
+      <!-- Email shows the current address. We will update this value to the actual email once hoked up -->
+      <label class="settings-field">
+        <span class="field-label">Email</span>
+        <input type="email" name="email" value="demo@polypaper.app" readonly>
+      </label>
+
+      <!-- Username can be edited; validation handled in JS for length constraints. -->
+      <label class="settings-field">
+        <span class="field-label">Username</span>
+        <input
+          type="text"
+          name="username"
+          value="{{ current_username or 'demo_user' }}"
+          minlength="3"
+          maxlength="24"
+          required
+        >
+        <small class="field-note validation-note" data-for="username"></small>
+      </label>
+
+      <!-- Bio placeholder; will be stored later when MongoDB is wired. -->
+      <label class="settings-field">
+        <span class="field-label">Bio</span>
+        <textarea name="bio" placeholder="Add your bio here" rows="4"></textarea>
+      </label>
+
+      <!-- Save CTA stays disabled until form changes/validates; enabled via JS. -->
+      <button class="btn-primary btn-save disabled" type="submit" disabled>Save changes</button>
+    </form>
+  </div>
+
+  <!-- Toast appears after clicking save to show a success placeholder. -->
+  <div class="settings-toast" id="settings-toast" role="status" aria-live="polite">
+    <div class="toast-header">Profile updated</div>
+    <p class="toast-body">Changes were successfully updated.</p>
+  </div>
+</section>
+{% endblock %}

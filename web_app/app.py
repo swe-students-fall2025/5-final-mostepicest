@@ -4,6 +4,12 @@ from flask import Flask, abort, redirect, render_template, request, url_for
 app = Flask(__name__)
 
 
+@app.context_processor
+def inject_user_context():
+    # Temporary user context so the topbar can show a username before real auth is wired up.
+    return {"current_username": "demo_user"}
+
+
 @app.route("/")
 def home():
     return redirect(url_for("login"))  # Home is changed to the login page
@@ -133,6 +139,19 @@ def login():
         )  # Redirect to portfolio after login (until real auth exists)
 
     return render_template("login.html", status_message=status_message)
+
+
+# New settings route 
+@app.route("/settings")
+def settings():
+    # Placeholder settings page until Mongo-backed profiles exist.
+    return render_template("settings.html")
+
+
+@app.route("/logout")
+def logout():
+    # Placeholder logout send the user back to the login page after the button is clicked.
+    return redirect(url_for("login"))
 
 
 if __name__ == "__main__":
