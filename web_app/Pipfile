@@ -6,15 +6,15 @@ name = "pypi"
 [packages]
 flask = "*"
 flask-login = "*"
+flask_bcrypt = "*"
 pymongo = "*"
 python-dotenv = "*"
-flask_bcrypt = "*"
 
 [dev-packages]
-pytest-flask = "*"
 black = "*"
 pylint = "*"
 pytest = "*"
+pytest-flask = "*"
 pytest-cov = "*"
 
 [requires]
