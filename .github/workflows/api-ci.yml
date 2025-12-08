@@ -82,3 +82,16 @@ jobs:
             cd /opt/project_5/api
             docker-compose -f docker-compose.prod.yml pull
             docker-compose -f docker-compose.prod.yml up -d
+      - name: Health check search_api
+        run: |
+          for i in {1..10}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://64.225.22.79:8001/health || echo "000")
+            echo "Attempt $i: HTTP status $STATUS"
+            if [ "$STATUS" -eq 200 ]; then
+              echo "API is healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "API health check failed, last status: $STATUS"
+          exit 1

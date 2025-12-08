@@ -64,7 +64,7 @@ jobs:
         run: |
           docker build -f web_app/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/web_app:latest web_app
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/web_app:latest
-          
+
   deploy_web_app_to_droplet:
     name: Deploy web_app to Droplet
     needs: build_and_push_web_app
@@ -82,3 +82,16 @@ jobs:
             cd /opt/project_5/web_app
             docker-compose -f docker-compose.prod.yml pull
             docker-compose -f docker-compose.prod.yml up -d
+      - name: Health check web_app
+        run: |
+          for i in {1..10}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://64.225.22.79/ || echo "000")
+            echo "Attempt $i: HTTP status $STATUS"
+            if [ "$STATUS" -eq 200 ]; then
+              echo "Web app is healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Health check failed, last status: $STATUS"
+          exit 1
