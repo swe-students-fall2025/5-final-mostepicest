@@ -170,14 +170,6 @@ body {
   opacity: 0.7;
 }
 
-/*hover effect: lift*/
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 16px 32px rgba(15, 23, 42, 0.08),
-    0 6px 12px rgba(15, 23, 42, 0.05);
-}
-
 /*card header*/
 .card-header {
   display: flex;
@@ -259,33 +251,6 @@ body {
 .btn-outline:hover {
   background: #f9fafb;
   border-color: #c7d2fe;
-}
-
-/*auth buttons in topbar on login/register pages*/
-.topbar-auth-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-login-top {
-  border-radius: 10px;
-  padding: 8px 14px;
-}
-
-.btn-register-top {
-  border-radius: 10px;
-  padding: 8px 14px;
-  background: var(--accent-dark);
-  color: #ffffff;
-  border: 1px solid var(--accent-dark);
-  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.25);
-  text-decoration: none;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-
-.btn-register-top:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(79, 70, 229, 0.3);
 }
 
 /* profile menu */
@@ -394,10 +359,6 @@ body {
   background: #f1f5f9;
 }
 
-.logout-item {
-  color: #dc2626;
-}
-
 /* settings page */
 .settings-page {
   max-width: 900px;
@@ -466,33 +427,6 @@ body {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
-}
-
-.settings-toast {
-  position: fixed;
-  left: 24px;
-  bottom: 24px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: #0f172a;
-  color: #f8fafc;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.25);
-  display: none;
-  min-width: 220px;
-}
-
-.settings-toast.show {
-  display: block;
-}
-
-.toast-header {
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.toast-body {
-  font-size: 13px;
-  color: #e2e8f0;
 }
 
 .time-toggle {
@@ -967,4 +901,42 @@ body {
   .page {
     padding: 18px 16px 32px;
   }
+}
+
+/* Flash messages */
+.flash-messages {
+  max-width: 1100px;
+  margin: 0 auto 20px;
+}
+
+.flash-message {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+/* Error messages (default) */
+.flash-message.flash-error,
+.flash-message {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.1);
+}
+
+/* Success messages */
+.flash-message.flash-success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.1);
+}
+
+/* Info messages */
+.flash-message.flash-info {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
