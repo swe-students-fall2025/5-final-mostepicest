@@ -11,11 +11,11 @@
     </div>
     <div class="card-main">
       <div class="card-value">
-        ${{ "%.2f"|format(user.balance) }}
+        ${{ "%.2f"|format(current_user.balance) }}
       </div>
-      <div class="card-change {{ 'positive' if user.change_today >= 0 else 'negative' }}">
-        {% if user.change_today >= 0 %}▲{% else %}▼{% endif %}
-        ${{ "%.2f"|format(user.change_today) }}
+      <div class="card-change {{ 'positive' if current_user.change_today >= 0 else 'negative' }}">
+        {% if current_user.change_today >= 0 %}▲{% else %}▼{% endif %}
+        ${{ "%.2f"|format(current_user.change_today) }}
       </div>
     </div>
     <button class="btn-outline">Withdraw</button>

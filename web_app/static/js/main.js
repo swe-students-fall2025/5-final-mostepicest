@@ -26,7 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const usernameInput = settingsForm.querySelector('input[name="username"]');
     const bioInput = settingsForm.querySelector('textarea[name="bio"]');
     const saveBtn = settingsForm.querySelector(".btn-save");
-    const toast = document.getElementById("settings-toast");
     const usernameNote = settingsForm.querySelector(
       '.validation-note[data-for="username"]'
     );
@@ -74,19 +73,12 @@ document.addEventListener("DOMContentLoaded", () => {
       bioInput.addEventListener("input", markChanged);
     }
 
-    // We will change this later
     settingsForm.addEventListener("submit", (e) => {
-      e.preventDefault(); // Prevent real submit until backend is wired.
-      if (!validateUsername()) return;
-      // Show toast feedback; in future this will reflect real API response.
-      if (toast) {
-        toast.classList.add("show");
-        setTimeout(() => toast.classList.remove("show"), 2500);
+      // Validate before submitting - if invalid, prevent submission
+      if (!validateUsername()) {
+        e.preventDefault();
+        return;
       }
-      // Reset change tracking.
-      initialState.username = usernameInput ? usernameInput.value : "";
-      initialState.bio = bioInput ? bioInput.value : "";
-      markChanged();
     });
 
     // Initialize state on load

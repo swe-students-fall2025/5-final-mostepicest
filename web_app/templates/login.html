@@ -27,11 +27,6 @@
             <span class="card-subtitle">Sign in to view your portfolio.</span>
         </div>
 
-        {% if status_message %}
-        <!-- Shows whatever the backend reports (just a placeholder for now)-->
-        <div class="status-banner">{{ status_message }}</div>
-        {% endif %}
-
         <!-- Form posts back to /login so the flask route can handle the authorization later-->
         <form class="auth-form" method="post" action="{{ url_for('login') }}">
             <!-- Email identification we will fetch later-->
