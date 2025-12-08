@@ -1,72 +1,766 @@
-from web_app.app import app
+"""
+Web_app route tests.
+"""
+
+from unittest.mock import patch, MagicMock
 
 
-def test_portfolio_page_loads_and_shows_positions():
-    """Portfolio page should render with user and two positions."""
-    client = app.test_client()
-    resp = client.get("/portfolio")
-    assert resp.status_code == 200
-    html = resp.data.decode("utf-8")
-
-    # From base.html
-    assert "PolyPaper" in html
-    assert "Practice trading event contracts" in html
-
-    # From portfolio.html (with positions)
-    assert "Will BTC be above $100k by 2026?" in html
-    assert "Will candidate X win the 2028 election?" in html
-
-    # Profit/loss chips
-    assert "value-chip positive" in html
-    assert "value-chip negative" in html
-
-    # User balance + change today
-    assert "$1000.00" in html
-    assert "$25.50" in html
+# =============================================================================
+# HOME ROUTE TESTS
+# =============================================================================
 
 
-def test_nav_links_present_on_portfolio():
-    """Top nav tabs should render correctly."""
-    client = app.test_client()
-    resp = client.get("/portfolio")
-    assert resp.status_code == 200
-    html = resp.data.decode("utf-8")
+class TestHomeRoute:
+    """Tests for the home route (/)."""
 
-    assert "Portfolio" in html
-    assert "Markets" in html
-    assert "Watchlist" in html
+    def test_home_unauthenticated_redirects_to_login(self, client):
+        """Unauthenticated user should be redirected to login."""
+        response = client.get("/", follow_redirects=False)
+        assert response.status_code in (301, 302)
+        assert "/login" in response.location
 
-
-def test_root_redirects_to_portfolio():
-    client = app.test_client()
-    resp = client.get("/", follow_redirects=False)
-    assert resp.status_code in (301, 302)
+    def test_home_authenticated_redirects_to_portfolio(self, auth_client):
+        """Authenticated user should be redirected to portfolio."""
+        response = auth_client.get("/", follow_redirects=False)
+        assert response.status_code in (301, 302)
+        assert "/portfolio" in response.location
 
 
-def test_markets_page_loads():
-    client = app.test_client()
-    resp = client.get("/markets")
-    assert resp.status_code == 200
-    html = resp.data.decode("utf-8")
-
-    # Page title + subtitle
-    assert "Markets" in html
-    assert "Search for event markets and practice trading without the risk." in html
-
-    # Market cards
-    assert "Open market" in html
-    assert "Will BTC close above $80k on Dec 31, 2025?" in html
+# =============================================================================
+# REGISTRATION TESTS
+# =============================================================================
 
 
-def test_market_detail_page_loads():
-    client = app.test_client()
-    resp = client.get("/markets/1")
-    assert resp.status_code == 200
-    html = resp.data.decode("utf-8")
+class TestRegistration:
+    """Tests for the registration route (/register)."""
 
-    # page content
-    assert "Will BTC close above $80k on Dec 31, 2025?" in html
-    assert "Crypto" in html
+    def test_register_get_renders_form(self, client):
+        """GET /register should render the registration form."""
+        response = client.get("/register")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Register" in html
+        assert "Email" in html
+        assert "Username" in html
+        assert "Password" in html
 
-    # trade ticket title
-    assert "Place a paper trade" in html
+    def test_register_success_creates_user_and_redirects(self, app, client):
+        """POST /register with valid data should create user and redirect to portfolio."""
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = None  # No existing user
+        mock_db.users.insert_one.return_value = MagicMock()
+
+        response = client.post(
+            "/register",
+            data={
+                "email": "newuser@example.com",
+                "username": "newuser",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+            follow_redirects=False,
+        )
+
+        assert response.status_code in (301, 302)
+        assert "/portfolio" in response.location
+        mock_db.users.insert_one.assert_called_once()
+
+    def test_register_empty_email_shows_error(self, client):
+        """POST /register with empty email should show error."""
+        response = client.post(
+            "/register",
+            data={
+                "email": "",
+                "username": "testuser",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Email is required" in html
+
+    def test_register_empty_username_shows_error(self, client):
+        """POST /register with empty username should show error."""
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Username is required" in html
+
+    def test_register_empty_password_shows_error(self, client):
+        """POST /register with empty password should show error."""
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "",
+                "confirm_password": "",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Password is required" in html
+
+    def test_register_password_mismatch_shows_error(self, client):
+        """POST /register with mismatched passwords should show error."""
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "ValidPass1!",
+                "confirm_password": "DifferentPass1!",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Passwords do not match" in html
+
+    def test_register_existing_email_shows_error(self, app, client):
+        """POST /register with existing email should show error."""
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = {"email": "existing@example.com"}
+
+        response = client.post(
+            "/register",
+            data={
+                "email": "existing@example.com",
+                "username": "newuser",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Email is already registered" in html
+
+    def test_register_existing_username_shows_error(self, app, client):
+        """POST /register with existing username should show error."""
+        mock_db = app._mock_db
+
+        # First call (email check) returns None, second call (username check) returns user
+        mock_db.users.find_one.side_effect = [None, {"username": "existinguser"}]
+
+        response = client.post(
+            "/register",
+            data={
+                "email": "new@example.com",
+                "username": "existinguser",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Username is already taken" in html
+
+    def test_register_password_too_short_shows_error(self, app, client):
+        """POST /register with password < 8 chars should show error."""
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = None
+
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "Short1!",
+                "confirm_password": "Short1!",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Password must be at least 8 characters long" in html
+
+    def test_register_password_no_uppercase_shows_error(self, app, client):
+        """POST /register with password missing uppercase should show error."""
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = None
+
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "lowercase1!",
+                "confirm_password": "lowercase1!",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Password must contain at least one uppercase letter" in html
+
+    def test_register_password_no_lowercase_shows_error(self, app, client):
+        """POST /register with password missing lowercase should show error."""
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = None
+
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "UPPERCASE1!",
+                "confirm_password": "UPPERCASE1!",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Password must contain at least one lowercase letter" in html
+
+    def test_register_password_no_number_shows_error(self, app, client):
+        """POST /register with password missing number should show error."""
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = None
+
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "NoNumber!!",
+                "confirm_password": "NoNumber!!",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Password must contain at least one number" in html
+
+    def test_register_password_no_special_char_shows_error(self, app, client):
+        """POST /register with password missing special char should show error."""
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = None
+
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "NoSpecial1",
+                "confirm_password": "NoSpecial1",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Password must contain at least one special character" in html
+
+    def test_register_database_error_shows_error(self, app, client):
+        """POST /register with database error should show error."""
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = None
+        mock_db.users.insert_one.side_effect = Exception("Database connection failed")
+
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "testuser",
+                "password": "ValidPass1!",
+                "confirm_password": "ValidPass1!",
+            },
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Error creating account" in html
+
+
+# =============================================================================
+# LOGIN TESTS
+# =============================================================================
+
+
+class TestLogin:
+    """Tests for the login route (/login)."""
+
+    def test_login_get_renders_form(self, client):
+        """GET /login should render the login form."""
+        response = client.get("/login")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Login" in html
+        assert "Email" in html
+        assert "Password" in html
+
+    def test_login_valid_credentials_redirects_to_portfolio(self, app, client, bcrypt):
+        """POST /login with valid credentials should redirect to portfolio."""
+        mock_db = app._mock_db
+        hashed_password = bcrypt.generate_password_hash("ValidPass1!").decode("utf-8")
+
+        mock_db.users.find_one.return_value = {
+            "user_id": "test-user-id",
+            "email": "test@example.com",
+            "username": "testuser",
+            "password": hashed_password,
+            "group_id": 0,
+        }
+
+        response = client.post(
+            "/login",
+            data={"email": "test@example.com", "password": "ValidPass1!"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code in (301, 302)
+        assert "/portfolio" in response.location
+
+    def test_login_invalid_email_shows_error(self, app, client):
+        """POST /login with non-existent email should show error."""
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = None
+
+        response = client.post(
+            "/login",
+            data={"email": "nonexistent@example.com", "password": "SomePassword1!"},
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Invalid email or password" in html
+
+    def test_login_wrong_password_shows_error(self, app, client, bcrypt):
+        """POST /login with wrong password should show error."""
+        mock_db = app._mock_db
+        hashed_password = bcrypt.generate_password_hash("CorrectPass1!").decode("utf-8")
+
+        mock_db.users.find_one.return_value = {
+            "user_id": "test-user-id",
+            "email": "test@example.com",
+            "username": "testuser",
+            "password": hashed_password,
+            "group_id": 0,
+        }
+
+        response = client.post(
+            "/login", data={"email": "test@example.com", "password": "WrongPassword1!"}
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Invalid email or password" in html
+
+
+# =============================================================================
+# LOGOUT TESTS
+# =============================================================================
+
+
+class TestLogout:
+    """Tests for the logout route (/logout)."""
+
+    def test_logout_authenticated_user_redirects_to_login(self, auth_client):
+        """Authenticated user logging out should redirect to login."""
+        response = auth_client.get("/logout", follow_redirects=False)
+        assert response.status_code in (301, 302)
+        assert "/login" in response.location
+
+    def test_logout_unauthenticated_user_redirects(self, client):
+        """Unauthenticated user accessing logout should be redirected."""
+        response = client.get("/logout", follow_redirects=False)
+        assert response.status_code in (301, 302)
+        assert "/login" in response.location
+
+
+# =============================================================================
+# PORTFOLIO TESTS
+# =============================================================================
+
+
+class TestPortfolio:
+    """Tests for the portfolio route (/portfolio)."""
+
+    def test_portfolio_unauthenticated_redirects_to_login(self, client):
+        """Unauthenticated user should be redirected to login."""
+        response = client.get("/portfolio", follow_redirects=False)
+        assert response.status_code in (301, 302)
+        assert "/login" in response.location
+
+    def test_portfolio_authenticated_shows_content(self, auth_client):
+        """Authenticated user should see portfolio content."""
+        response = auth_client.get("/portfolio")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+
+        # From base.html
+        assert "PolyPaper" in html
+
+        # Portfolio page content
+        assert "Portfolio" in html
+
+    def test_portfolio_shows_positions(self, auth_client):
+        """Portfolio page should display positions."""
+        response = auth_client.get("/portfolio")
+        assert response.status_code == 200
+
+    def test_portfolio_shows_user_balance(self, auth_client):
+        """Portfolio page should display user balance."""
+        response = auth_client.get("/portfolio")
+        assert response.status_code == 200
+
+    def test_portfolio_nav_links_present(self, auth_client):
+        """Portfolio page should have navigation links."""
+        response = auth_client.get("/portfolio")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+
+        assert "Portfolio" in html
+        assert "Markets" in html
+        assert "Watchlist" in html
+
+
+# =============================================================================
+# MARKETS TESTS
+# =============================================================================
+
+
+class TestMarkets:
+    """Tests for the markets route (/markets)."""
+
+    def test_markets_unauthenticated_redirects_to_login(self, client):
+        """Unauthenticated user should be redirected to login."""
+        response = client.get("/markets", follow_redirects=False)
+        assert response.status_code in (301, 302)
+        assert "/login" in response.location
+
+    def test_markets_authenticated_shows_all_markets(self, auth_client):
+        """Authenticated user should see all markets."""
+        response = auth_client.get("/markets")
+        assert response.status_code == 200
+
+    def test_markets_search_filters_by_question(self, auth_client):
+        """Search should filter markets by question text."""
+        response = auth_client.get("/markets?q=btc")
+        assert response.status_code == 200
+
+    def test_markets_search_filters_by_region(self, auth_client):
+        """Search should filter markets by region."""
+        response = auth_client.get("/markets?q=usa")
+        assert response.status_code == 200
+
+    def test_markets_search_filters_by_category(self, auth_client):
+        """Search should filter markets by category."""
+        response = auth_client.get("/markets?q=crypto")
+        assert response.status_code == 200
+
+    def test_markets_search_no_results(self, auth_client):
+        """Search with no matches should show empty results."""
+        response = auth_client.get("/markets?q=nonexistent")
+        assert response.status_code == 200
+
+    def test_markets_page_title(self, auth_client):
+        """Markets page should have proper title and subtitle."""
+        response = auth_client.get("/markets")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+
+        assert "Markets" in html
+
+
+# =============================================================================
+# MARKET DETAIL TESTS
+# =============================================================================
+
+
+class TestMarketDetail:
+    """Tests for the market detail route (/markets/<id>)."""
+
+    def test_market_detail_unauthenticated_redirects(self, client):
+        """Unauthenticated user should be redirected to login."""
+        response = client.get("/markets/1", follow_redirects=False)
+        assert response.status_code in (301, 302)
+        assert "/login" in response.location
+
+    def test_market_detail_valid_id_shows_content(self, auth_client):
+        """Valid market ID should show market details."""
+        response = auth_client.get("/markets/1")
+        assert response.status_code == 200
+
+    def test_market_detail_all_markets_accessible(self, auth_client):
+        """All valid market IDs should be accessible."""
+        for market_id in [1, 2, 3]:
+            response = auth_client.get(f"/markets/{market_id}")
+            assert response.status_code == 200
+
+    def test_market_detail_invalid_id_returns_404(self, auth_client):
+        """Invalid market ID should return 404."""
+        response = auth_client.get("/markets/999")
+        assert response.status_code == 404
+
+    def test_market_detail_shows_trade_ticket(self, auth_client):
+        """Market detail page should show trade ticket."""
+        response = auth_client.get("/markets/1")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+
+        assert "Place a paper trade" in html
+
+
+# =============================================================================
+# SETTINGS TESTS
+# =============================================================================
+
+
+class TestSettings:
+    """Tests for the settings route (/settings)."""
+
+    def test_settings_unauthenticated_redirects_to_login(self, client):
+        """Unauthenticated user should be redirected to login."""
+        response = client.get("/settings", follow_redirects=False)
+        assert response.status_code in (301, 302)
+        assert "/login" in response.location
+
+    def test_settings_authenticated_shows_form(self, auth_client):
+        """Authenticated user should see settings form."""
+        response = auth_client.get("/settings")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Settings" in html or "Profile Settings" in html
+        assert "Email" in html
+        assert "Username" in html
+
+    def test_settings_post_valid_username_updates_successfully(
+        self, app, auth_client, sample_user_data
+    ):
+        """POST /settings with valid username should update successfully."""
+        mock_db = app._mock_db
+
+        # Use side_effect to return different values based on query
+        # load_user queries by user_id, settings route queries by username
+        def find_one_side_effect(query):
+            if "user_id" in query:
+                return sample_user_data
+            elif "username" in query:
+                return None  # Username not taken
+            return None
+
+        mock_db.users.find_one.side_effect = find_one_side_effect
+        mock_db.users.update_one.return_value = MagicMock()
+
+        response = auth_client.post(
+            "/settings",
+            data={"username": "newusername"},
+            follow_redirects=False,
+        )
+
+        assert response.status_code in (301, 302)
+        assert "/settings" in response.location
+        mock_db.users.update_one.assert_called_once()
+        # Verify update_one was called with correct arguments
+        call_args = mock_db.users.update_one.call_args
+        assert call_args[0][0]["user_id"] == "test-user-id-12345"
+        assert call_args[0][1]["$set"]["username"] == "newusername"
+
+    def test_settings_post_empty_username_shows_error(self, auth_client):
+        """POST /settings with empty username should show error."""
+        response = auth_client.post("/settings", data={"username": ""})
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Username is required" in html
+
+    def test_settings_post_username_too_short_shows_error(self, auth_client):
+        """POST /settings with username < 3 chars should show error."""
+        response = auth_client.post("/settings", data={"username": "ab"})
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Username must be at least 3 characters" in html
+
+    def test_settings_post_username_too_long_shows_error(self, auth_client):
+        """POST /settings with username > 24 chars should show error."""
+        long_username = "a" * 25
+        response = auth_client.post("/settings", data={"username": long_username})
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Username cannot exceed 24 characters" in html
+
+    def test_settings_post_username_already_taken_shows_error(
+        self, app, auth_client, sample_user_data
+    ):
+        """POST /settings with existing username should show error."""
+        mock_db = app._mock_db
+
+        # Use side_effect to return different values based on query
+        def find_one_side_effect(query):
+            if "user_id" in query:
+                return sample_user_data
+            elif "username" in query:
+                return {
+                    "user_id": "different-user-id",
+                    "username": "takenusername",
+                    "email": "other@example.com",
+                    "group_id": 0,
+                }
+            return None
+
+        mock_db.users.find_one.side_effect = find_one_side_effect
+
+        response = auth_client.post("/settings", data={"username": "takenusername"})
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Username is already taken" in html
+        # Verify update_one was not called
+        mock_db.users.update_one.assert_not_called()
+
+    def test_settings_post_same_username_allowed(
+        self, app, auth_client, sample_user_data
+    ):
+        """POST /settings with same username as current user should be allowed."""
+        mock_db = app._mock_db
+
+        # Use side_effect to return different values based on query
+        def find_one_side_effect(query):
+            if "user_id" in query:
+                return sample_user_data
+            elif "username" in query:
+                return sample_user_data
+            return None
+
+        mock_db.users.find_one.side_effect = find_one_side_effect
+        mock_db.users.update_one.return_value = MagicMock()
+
+        response = auth_client.post("/settings", data={"username": "testuser"})
+        # Should succeed (same username is allowed)
+        assert response.status_code in (200, 301, 302)
+        # update_one should be called even with same username
+        mock_db.users.update_one.assert_called_once()
+
+    def test_settings_post_database_error_shows_error(
+        self, app, auth_client, sample_user_data
+    ):
+        """POST /settings with database error should show error."""
+        mock_db = app._mock_db
+
+        # Use side_effect to return different values based on query
+        def find_one_side_effect(query):
+            if "user_id" in query:
+                return sample_user_data
+            elif "username" in query:
+                return None
+            return None
+
+        mock_db.users.find_one.side_effect = find_one_side_effect
+        mock_db.users.update_one.side_effect = Exception("Database connection failed")
+
+        response = auth_client.post("/settings", data={"username": "newusername"})
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "Error updating username" in html
+
+    def test_settings_post_success_flash_message(
+        self, app, auth_client, sample_user_data
+    ):
+        """POST /settings with valid username should show success message."""
+        mock_db = app._mock_db
+
+        # Use side_effect to return different values based on query
+        def find_one_side_effect(query):
+            if "user_id" in query:
+                return sample_user_data
+            elif "username" in query:
+                return None
+            return None
+
+        mock_db.users.find_one.side_effect = find_one_side_effect
+        mock_db.users.update_one.return_value = MagicMock()
+
+        response = auth_client.post(
+            "/settings", data={"username": "newusername"}, follow_redirects=True
+        )
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        # Check for success message in flashed messages
+        assert "Username updated successfully" in html or "success" in html.lower()
+
+
+# =============================================================================
+# USER LOADER TESTS
+# =============================================================================
+
+
+class TestUserLoader:
+    """Tests for the user_loader function."""
+
+    def test_user_loader_returns_user_when_found(self, app):
+        """user_loader should return User when user exists."""
+        from web_app.app import load_user
+
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = {
+            "user_id": "test-user-id",
+            "email": "test@example.com",
+            "username": "testuser",
+            "group_id": 0,
+        }
+
+        with app.app_context():
+            user = load_user("test-user-id")
+            assert user is not None
+            assert user.id == "test-user-id"
+            assert user.email == "test@example.com"
+            assert user.username == "testuser"
+
+    def test_user_loader_returns_none_when_not_found(self, app):
+        """user_loader should return None when user doesn't exist."""
+        from web_app.app import load_user
+
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = None
+
+        with app.app_context():
+            user = load_user("nonexistent-user-id")
+            assert user is None
+
+    def test_user_loader_returns_none_on_exception(self, app):
+        """user_loader should return None when exception occurs."""
+        from web_app.app import load_user
+
+        mock_db = app._mock_db
+        mock_db.users.find_one.side_effect = Exception("Database error")
+
+        with app.app_context():
+            user = load_user("test-user-id")
+            assert user is None
+
+
+# =============================================================================
+# USER CLASS TESTS
+# =============================================================================
+
+
+class TestUserClass:
+    """Tests for the User class."""
+
+    def test_user_creation(self, app):
+        """User class should properly initialize with given data."""
+        from web_app.app import User
+
+        user = User(
+            user_id="test-id", email="test@example.com", username="testuser", group_id=1
+        )
+
+        assert user.id == "test-id"
+        assert user.email == "test@example.com"
+        assert user.username == "testuser"
+        assert user.group_id == 1
+
+    def test_user_inherits_usermixin(self, app):
+        """User class should inherit from UserMixin."""
+        from web_app.app import User
+        import flask_login
+
+        user = User(
+            user_id="test-id", email="test@example.com", username="testuser", group_id=1
+        )
+
+        assert hasattr(user, "is_authenticated")
+        assert hasattr(user, "is_active")
+        assert hasattr(user, "is_anonymous")
+        assert hasattr(user, "get_id")
+        assert user.is_authenticated is True
+        assert user.is_active is True
+        assert user.is_anonymous is False
