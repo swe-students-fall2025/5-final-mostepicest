@@ -4,6 +4,8 @@ services:
   web_app:
     image: danielleesignup/web_app:latest
     container_name: web_app
+    env_file:
+      - /opt/project_5/.env
     environment:
       FLASK_ENV: "production" 
       # This is what Flask app should use to call the API in prod.
