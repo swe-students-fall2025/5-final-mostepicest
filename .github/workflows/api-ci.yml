@@ -67,3 +67,18 @@ jobs:
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/clob_display:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/search_api:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/ws_clob:latest
+  deploy_api_to_droplet:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy API to DigitalOcean Droplet via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            cd /opt/project_5/api
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d
