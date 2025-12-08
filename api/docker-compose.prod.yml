@@ -15,7 +15,7 @@ services:
     restart: unless-stopped
 
   search_api:
-    image: daniellee/search-api:latest
+    image: danielleesignup/api-search_api:latest
     container_name: search_api
     environment:
       REDIS_HOST: redis
@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
 
   clob_display:
-    image: daniellee/clob-display:latest
+    image: danielleesignup/api-clob_display:latest
     container_name: clob_display
     environment:
       REDIS_HOST: redis
@@ -39,7 +39,7 @@ services:
     restart: unless-stopped
 
   ws_clob:
-    image: daniellee/ws-clob:latest
+    image: danielleesignup/api-ws_clob:latest
     container_name: ws_clob
     ports:
       - "8003:8003"
