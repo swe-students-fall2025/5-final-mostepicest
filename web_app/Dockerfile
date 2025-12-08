@@ -1,5 +1,5 @@
 # Use a lightweight Python image
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 # Install system dependencies required for building Python packages, pipenv, etc.
 RUN apt-get update && apt-get install -y --no-install-recommends \
