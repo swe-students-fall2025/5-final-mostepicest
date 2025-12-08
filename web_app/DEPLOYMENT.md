@@ -105,3 +105,60 @@ On pushes to `main`:
    cd /opt/project_5/api
    docker-compose -f docker-compose.prod.yml pull
    docker-compose -f docker-compose.prod.yml up -d
+
+### 4.2 Web App CI/CD (`web-app-ci.yml`)
+
+On pushes to `main`, the web application uses a GitHub Actions workflow that performs:
+
+1. **Linting and tests**  
+   The `test` job runs automatically on every push and pull request.  
+   It installs dependencies, runs formatting checks, and executes the test suite.
+
+2. **Build and push Docker image**  
+   When a commit is pushed to `main`, GitHub Actions:
+   - Builds the `web_app` Docker image using `web_app/Dockerfile`.
+   - Tags it as:
+
+     ```
+     <DOCKERHUB_USERNAME>/web_app:latest
+     ```
+
+   - Pushes the image to Docker Hub.
+
+3. **Deploy to the DigitalOcean Droplet**  
+   After the image is successfully pushed, a deployment job:
+   - SSHes into the Droplet using the private key stored in GitHub Secrets.
+   - Moves into the production directory:
+
+     ```
+     /opt/project_5/web_app
+     ```
+
+   - Pulls the newly built image from Docker Hub.
+   - Restarts the container using:
+
+     ```
+     docker-compose -f docker-compose.prod.yml pull
+     docker-compose -f docker-compose.prod.yml up -d
+     ```
+
+4. **Secrets and configuration**  
+   The web app does **not** receive secret values from GitHub Actions.  
+   Instead, the Droplet loads them from a shared environment file:
+
+    ```
+     /opt/project_5/.env
+    ```
+    The web app reads:
+
+    - `SECRET_KEY`
+    - `API_BASE_URL`
+    - any other shared secrets
+
+    via `env_file` inside `docker-compose.prod.yml`.
+
+### Summary
+
+- Pull Requests → tests only (no deployment).  
+- Pushes to `main` → test → build image → push image → deploy to Droplet.  
+- Secrets stay on the Droplet, not inside CI.  
