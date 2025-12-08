@@ -13,14 +13,14 @@ RUN pip install pipenv
 WORKDIR /app
 
 # Copy Pipenv files FIRST (to leverage Docker caching)
-COPY web_app/Pipfile web_app/Pipfile.lock ./
+COPY Pipfile Pipfile.lock ./
 
 # Install dependencies inside the container
 # --deploy ensures pipenv uses Pipfile.lock exactly
 RUN pipenv install --deploy --ignore-pipfile
 
 # Copy the web_app source code into the container
-COPY web_app/ ./
+COPY . ./
 
 # Environment variable (overridden in docker-compose.prod.yml)
 ENV API_BASE_URL=http://localhost:8001
