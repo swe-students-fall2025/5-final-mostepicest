@@ -5,6 +5,7 @@ services:
     image: danielleesignup/web_app:latest
     container_name: web_app
     environment:
+      FLASK_ENV: "production" 
       # This is what Flask app should use to call the API in prod.
       API_BASE_URL: "http://64.225.22.79:8001"
     ports:
