@@ -502,6 +502,31 @@ class TestMarketDetail:
 
 
 # =============================================================================
+# WATCHLIST TESTS
+# =============================================================================
+
+
+class TestWatchlist:
+    """Tests for the watchlist route (/watchlist)."""
+
+    def test_watchlist_unauthenticated_redirects_to_login(self, client):
+        """Unauthenticated user should be redirected to login."""
+        response = client.get("/watchlist", follow_redirects=False)
+        assert response.status_code in (301, 302)
+        assert "/login" in response.location
+
+    def test_watchlist_authenticated_shows_markets(self, auth_client):
+        """Authenticated user should see watchlist markets."""
+        response = auth_client.get("/watchlist")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+
+        assert "Watchlist" in html
+        # Our TEMP WATCHLIST_MARKET_IDS = [1, 3]
+        assert "Will BTC close above $80k on Dec 31, 2025?" in html
+
+
+# =============================================================================
 # SETTINGS TESTS
 # =============================================================================
 

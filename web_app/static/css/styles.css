@@ -700,6 +700,18 @@ body {
   transform: none;
 }
 
+.btn-ghost {
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: #6c4ef2;
+}
+.btn-ghost[disabled] {
+  opacity: 0.7;
+}
+
 .auth-meta {
   margin-top: 4px;
   color: var(--text-muted);
@@ -784,6 +796,45 @@ body {
   color: #a0a0c0;
   border-radius: 1.25rem;
   background: rgba(255, 255, 255, 0.5);
+}
+
+/* shared page container */
+.page-section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* header spacing and left alignment */
+.page-header {
+  margin: 2.5rem 0 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;  /* ensures headings sit left inside the box */
+}
+
+.page-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #1e1b4b;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 1.1rem;
+  color: #4b4b72;
+}
+
+/* space below search bar on Markets */
+.positions-search {
+  margin-bottom: 1.5rem;
+}
+
+/* markets grid just handles vertical spacing */
+.markets-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 /*trade ticket*/
