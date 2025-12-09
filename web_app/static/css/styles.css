@@ -798,19 +798,19 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
-/* shared page container */
+
 .page-section {
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 1rem;
 }
 
-/* header spacing and left alignment */
+
 .page-header {
   margin: 2.5rem 0 1.5rem 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;  /* ensures headings sit left inside the box */
+  align-items: flex-start;  
 }
 
 .page-title {
@@ -825,12 +825,11 @@ body {
   color: #4b4b72;
 }
 
-/* space below search bar on Markets */
+
 .positions-search {
   margin-bottom: 1.5rem;
 }
 
-/* markets grid just handles vertical spacing */
 .markets-grid {
   display: flex;
   flex-direction: column;
