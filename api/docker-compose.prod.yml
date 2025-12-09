@@ -17,6 +17,8 @@ services:
   search_api:
     image: danielleesignup/api-search_api:latest
     container_name: search_api
+    env_file:
+      - /opt/project_5/.env
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -29,6 +31,8 @@ services:
   clob_display:
     image: danielleesignup/api-clob_display:latest
     container_name: clob_display
+    env_file:
+      - /opt/project_5/.env
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -41,6 +45,8 @@ services:
   ws_clob:
     image: danielleesignup/api-ws_clob:latest
     container_name: ws_clob
+    env_file:
+      - /opt/project_5/.env
     ports:
       - "8003:8003"
     depends_on:

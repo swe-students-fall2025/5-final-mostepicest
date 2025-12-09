@@ -336,4 +336,13 @@ def settings():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Detect environment: "production" vs "development"
+    ENV = os.environ.get("FLASK_ENV", "development")
+
+    if ENV == "production":
+        # Docker / DigitalOcean mode
+        app.run(host="0.0.0.0", port=5000, debug=False)
+    else:
+        # Local development mode
+        # Default debug=True; Flask listens on 127.0.0.1
+        app.run(debug=True)
