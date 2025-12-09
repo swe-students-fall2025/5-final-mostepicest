@@ -1,24 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Markets • PolyPaper{% endblock %}
+{% block title %}Watchlist • PolyPaper{% endblock %}
 
 {% block content %}
+
 <div class="page-section">
   <section class="page-header">
-    <h1 class="page-title">Markets</h1>
+    <h1 class="page-title">Watchlist</h1>
     <p class="page-subtitle">
-      Search for event markets and practice trading without the risk.
+      Markets you’re keeping an eye on.
     </p>
   </section>
-
-  <form class="positions-search" method="get" action="{{ url_for('markets') }}">
-    <input
-      type="text"
-      name="q"
-      placeholder="Search by question or keyword"
-      value="{{ query or '' }}"
-    >
-    <button class="btn-filter" type="submit">Search</button>
-  </form>
 
 {% if markets %}
 <section class="markets-grid">
@@ -42,23 +33,21 @@
       </div>
     </div>
 
-   <div class="card-actions">
-  <a class="btn-outline" href="{{ url_for('market_detail', market_id=m.id) }}">
-    Open market
-  </a>
-</div>
+    <div class="card-actions">
+      <a class="btn-outline" href="{{ url_for('market_detail', market_id=m.id) }}">
+        Open market
+      </a>
+      <button class="btn-ghost" type="button" disabled>
+        ★ On watchlist
+      </button>
+    </div>
   </article>
   {% endfor %}
 </section>
 {% else %}
 <div class="empty-state">
-  {% if query %}
-    <p>No markets found for “{{ query }}”.</p>
-    <p class="hint">Try another keyword or region.</p>
-  {% else %}
-    <p>No markets available yet.</p>
-    <p class="hint">The API team will hook this up to real data soon.</p>
-  {% endif %}
+  <p>No markets in your watchlist yet.</p>
+  <p class="hint">Browse markets and add the ones you want to follow.</p>
 </div>
 {% endif %}
 
