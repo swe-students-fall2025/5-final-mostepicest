@@ -15,7 +15,7 @@ jobs:
         working-directory: api
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -23,58 +23,66 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies using pipenv
+      - name: Install dependencies
         run: |
-          pip install pipenv
-          pipenv install --system --deploy --dev
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pylint black
 
-      - name: Lint with pylint
+      - name: Lint
         run: |
-          pylint --exit-zero $(git ls-files '*.py')
+          pylint *.py tests
 
-      - name: Check formatting with black
+      - name: Format check
         run: |
           black --check .
 
-      - name: Run unit tests with coverage
+      - name: Run tests
         run: |
-          pytest --cov=./ --cov-report=xml --cov-fail-under=0
+          pytest
 
-  docker:
-    name: Build and push Docker images
+  build-and-deploy:
+    name: Build images and deploy to droplet
+    needs: test
     runs-on: ubuntu-latest
-    needs: test  # only run if the test job passes
-    if: github.ref == 'refs/heads/main'  # only on pushes to main
-    defaults:
-      run:
-        working-directory: .
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker images
-        run: |
-          docker build -f api/Dockerfile.clob -t ${{ secrets.DOCKERHUB_USERNAME }}/clob_display:latest api
-          docker build -f api/Dockerfile.search -t ${{ secrets.DOCKERHUB_USERNAME }}/search_api:latest api
-          docker build -f api/Dockerfile.ws -t ${{ secrets.DOCKERHUB_USERNAME }}/ws_clob:latest api
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/clob_display:latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/search_api:latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/ws_clob:latest
-  deploy_api_to_droplet:
-    needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+      - name: Build and push search_api image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          file: ./api/Dockerfile.search
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/search_api:latest
 
-    steps:
-      - name: Deploy API to DigitalOcean Droplet via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Build and push price_api image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          file: ./api/Dockerfile.price
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/price_api:latest
+      
+      - name: Copy docker-compose.prod.yml to droplet
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          source: "./docker-compose.prod.yml"
+          target: "/opt/project_5/api/"
+
+      - name: Deploy on droplet
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
@@ -82,12 +90,11 @@ jobs:
           script: |
             cd /opt/project_5/api
 
-            # 1. Stop and remove existing containers to avoid the ContainerConfig bug
+            # Stop and remove existing containers
             docker-compose -f docker-compose.prod.yml down --remove-orphans || true
 
-            # 2. Pull the latest images
+            # Pull the latest images built in this workflow
             docker-compose -f docker-compose.prod.yml pull
 
-            # 3. Start a fresh stack
+            # Start a fresh stack
             docker-compose -f docker-compose.prod.yml up -d
-

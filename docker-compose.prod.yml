@@ -13,11 +13,11 @@ services:
       - --maxmemory-policy
       - allkeys-lru
       - --databases
-      - 3
+      - "3"
     restart: unless-stopped
 
   search_api:
-    image: danielleesignup/api-search_api:latest
+    image: danielleesignup/search_api:latest
     container_name: search_api
     env_file:
       - /opt/project_5/.env
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
 
   price_api:
-    image: danielleesignup/api-price_api:latest
+    image: danielleesignup/price_api:latest
     container_name: price_api
     env_file:
       - /opt/project_5/.env
