@@ -188,9 +188,9 @@ def login():
         email = request.form.get("email")
         password = request.form.get("password")
         user = db.users.find_one({"email": email})
-        username = user["username"]
 
         if user and bcrypt.check_password_hash(user["password"], password):
+            username = user["username"]
             flask_login.login_user(
                 User(user["user_id"], email, username, user["portfolio_id"])
             )
@@ -209,7 +209,6 @@ def logout():
 @app.route("/portfolio")
 @flask_login.login_required
 def portfolio():
-    user_id = flask_login.current_user.id
     portfolio_id = flask_login.current_user.portfolio_id
 
     # 1. Get Positions from DB
@@ -271,7 +270,7 @@ def markets():
     if q:
         try:
             page = page if page else 1
-            resp = requests.get(f"{SEARCH_URL}/search", params={"q": q, "page": page})
+            resp = requests.get(f"{SEARCH_URL}/search", params={"q": q, "page": page},timeout=300)
             data = resp.json() if resp.status_code == 200 else []
             active_markets = []
             for event in data.get("events", []):
@@ -287,7 +286,6 @@ def markets():
                         active_markets.append(m)
                         cache_market(m["slug"], m)
         except Exception as e:
-            markets_data = []
             print(e)
             flash("Search service unreachable", "error")
 

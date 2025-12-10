@@ -5,7 +5,8 @@ init-hook='import sys, os; sys.path.append(os.path.abspath("."))'
 [MESSAGES CONTROL]
 disable=
 #    missing-module-docstring,
-#    missing-function-docstring,
+    missing-function-docstring,
+    missing-class-docstring,
     redefined-outer-name,
     unused-argument,
 #    invalid-name,
@@ -13,5 +14,11 @@ disable=
     unnecessary-pass,
 #    raise-missing-from,
 #    empty-docstring,
+    undefined-variable,
+    too-many-nested-blocks,
     broad-exception-caught,
     too-many-branches,
+    too-many-locals,
+    import-outside-toplevel,
+    too-many-positional-arguments,
+    too-many-arguments

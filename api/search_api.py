@@ -64,6 +64,8 @@ async def get_polymarket_search(q: str, page: int):
 @app.get("/search")
 async def search(q: str = Query(..., min_length=1), page: int = 1):
     """Helper to search markets"""
+    if page < 0:
+        raise HTTPException(status_code=422, detail="Invalid page number")
     try:
         data = await get_polymarket_search(q, page)
         return JSONResponse(data)

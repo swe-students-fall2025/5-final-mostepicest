@@ -2,8 +2,9 @@
 Pytest configuration and shared fixtures for web_app tests.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 from flask_bcrypt import Bcrypt
 
 
@@ -16,6 +17,7 @@ def sample_user_data():
         "username": "testuser",
         "password": "hashed_password_placeholder",
         "group_id": 0,
+        "portfolio_id": "test-portfolio-id-12345",
         "created_at": "2025-01-01T00:00:00Z",
         "deleted_at": None,
     }
