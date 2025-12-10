@@ -160,7 +160,7 @@ def register():
         email = request.form.get("email")
         username = request.form.get("username")
         password = request.form.get("password")
-        starting_balance = float(request.form.get("balance", 0.0))
+        starting_balance = 1000000
         if db.users.find_one({"email": email}):
             flash("Email exists", "error")
             return redirect(url_for("register"))
@@ -225,21 +225,21 @@ def portfolio():
 
     # 2. Get Real Prices for these assets
     positions = portfolio["positions"]
-    asset_ids = [p["asset_id"] for p in positions]
+    print(portfolio)
+    asset_ids = list(positions.keys())
     live_prices = fetch_live_prices(asset_ids)
-
+    print(asset_ids)
     # 3. Calculate Stats
     portfolio_display = []
     total_value = flask_login.current_user.balance
     total_pnl = 0.0  # Track total profit/loss
 
-    for pos in positions:
-        aid = pos["asset_id"]
+    for asset_id, info in positions.items():
         # Use live price if available, else fallback to avg_price
-        current_price = live_prices.get(aid, pos["avg_price"])
+        current_price = float(live_prices.get(asset_id, info["avg_price"]))
 
-        market_val = current_price * pos["quantity"]
-        cost_basis = pos["avg_price"] * pos["quantity"]
+        market_val = current_price * info["quantity"]
+        cost_basis = info["avg_price"] * info["quantity"]
         pnl = market_val - cost_basis
 
         total_pnl += pnl
@@ -247,11 +247,11 @@ def portfolio():
 
         portfolio_display.append(
             {
-                "market": pos.get("market_question", "Unknown Market"),
-                "avg_price": pos["avg_price"],
+                "market": info.get("market_question", "Unknown Market"),
+                "avg_price": info["avg_price"],
                 "current_price": current_price,
                 "bet_amount": cost_basis,
-                "quantity": pos["quantity"],
+                "quantity": info["quantity"],
                 "to_win": pnl,
             }
         )
@@ -266,7 +266,10 @@ def portfolio():
 
     # FIXED: Pass as 'user_info' instead of 'current_user' to avoid breaking base.html
     return render_template(
-        "portfolio.html", positions=portfolio_display, current_user=user_view
+        "portfolio.html",
+        positions=portfolio_display,
+        current_user=user_view,
+        current_portfolio=portfolio,
     )
 
 
@@ -384,69 +387,112 @@ def live_prices():
 @app.route("/trade", methods=["POST"])
 @flask_login.login_required
 def trade():
-    """Execute a simulated trade based on real market prices."""
+    data = request.get_json()
+    asset_id = data.get("asset_id")
+    bid = data.get("bid")
+    question = data.get("question")
+
+    if not all([asset_id, bid, question]):
+        flash("Missing trade parameters.", "error")
+        return jsonify({"success": False})
+
     try:
-        data = request.get_json(force=True)
-        print(data)
-        asset_id = data.get("asset_id")
-        bid = float(data.get("bid", 0))
-        question = data.get("question")
-
+        bid = float(bid)
         if bid <= 0:
-            flash("Invalid bid", "error")
-            return jsonify({"success": False, "redirect": url_for("markets")})
+            flash("Bid must be positive.", "error")
+            return jsonify({"success": False})
+    except ValueError:
+        flash("Invalid bid amount.", "error")
+        return jsonify({"success": False})
 
-        # 1. Get Real Price
-        prices = fetch_live_prices([asset_id])
-        execution_price = float(prices.get(asset_id))
+    portfolio_id = flask_login.current_user.portfolio_id
+    try:
+        portfolio = db.portfolios.find_one({"portfolio_id": portfolio_id})
+        print(portfolio)
+    except Exception as e:
+        flash(
+            "Portfolio not found for the current user. Please log in again.",
+            f"error: {e}",
+        )
+        return jsonify({"success": False, "redirect": url_for("logout")})
+
+    try:
+        # 1. Get current execution price from the pricing service
+        price = fetch_live_prices([asset_id])
+        execution_price = float(price.get(asset_id))
+
+        if execution_price is None:
+            flash("Could not get a current price for the market.", "error")
+            return jsonify({"success": False})
+
+        # 2. Calculate quantity
+        # In this simple model, we assume buying shares of the 'Yes' outcome.
+        # Price is the probability, bid is the cost.
         quantity = bid / execution_price
-        if not execution_price:
-            flash("Could not fetch price. Trade aborted.", "error")
-            return jsonify({"success": False, "redirect": url_for("markets")})
 
-        # 2. Check Balance
-        if flask_login.current_user.balance < bid:
-            flash(f"Insufficient funds. Cost: ${bid:.2f}", "error")
-            return jsonify({"success": False, "redirect": url_for("portfolio")})
-        portfolio_id = flask_login.current_user.portfolio_id
         # 3. Deduct cost atomically
+        # This update only proceeds if the balance is sufficient.
         result = db.portfolios.update_one(
-            {"_id": portfolio_id, "balance": {"$gte": bid}},  # ensure enough balance
+            {
+                "portfolio_id": portfolio_id,
+                "balance": {"$gte": bid},
+            },  # ensure enough balance
             {"$inc": {"balance": -bid}},
         )
+
         if result.matched_count == 0:
             flash("Insufficient funds. Trade aborted.", "error")
             return jsonify({"success": False, "redirect": url_for("portfolio")})
 
-        current_position = db.portfolios.find_one(
-            {"_id": portfolio_id, f"positions.{asset_id}": {"$exists": True}},
-            {f"positions.{asset_id}": 1},
-        )
-        if current_position:
-            # Asset exists → calculate new weighted average
-            old_q = current_position["positions"][asset_id]["quantity"]
-            old_avg = current_position["positions"][asset_id]["avg_price"]
-            new_q = old_q + quantity
-            new_avg = ((old_q * old_avg) + (quantity * execution_price)) / new_q
+        # --- START: Modification to update current_user balance ---
+        # 4. Refetch the updated portfolio to get the new balance
+        updated_portfolio = db.portfolios.find_one({"portfolio_id": portfolio_id})
 
+        # 5. Update the Flask-Login User object's balance property
+        if updated_portfolio:
+            flask_login.current_user.balance = updated_portfolio["balance"]
+        # --- END: Modification to update current_user balance ---
+
+        # 6. Update or create the position
+        current_position = db.portfolios.find_one(
+            {"portfolio_id": portfolio_id, f"positions.{asset_id}": {"$exists": True}},
+        )
+
+        if current_position:
+            # Position exists: calculate new average price and total cost
+            existing_pos = current_position["positions"][asset_id]
+            existing_cost = existing_pos["total_cost"]
+            existing_shares = existing_cost / existing_pos["avg_price"]
+
+            new_total_cost = existing_cost + bid
+            new_total_shares = existing_shares + quantity
+            new_avg_price = new_total_cost / new_total_shares
+
+            # Update the existing position
             db.portfolios.update_one(
-                {"_id": portfolio_id},
+                {"portfolio_id": portfolio_id},
                 {
                     "$set": {
-                        f"positions.{asset_id}.quantity": new_q,
-                        f"positions.{asset_id}.avg_price": new_avg,
+                        f"positions.{asset_id}.total_cost": new_total_cost,
+                        f"positions.{asset_id}.avg_price": new_avg_price,
+                        f"positions.{asset_id}.updated_at": datetime.now(timezone.utc),
+                        f"positions.{asset_id}.quantity": new_total_shares,
                     }
                 },
             )
         else:
+            # Position does not exist: create new one
             db.portfolios.update_one(
-                {"_id": portfolio_id},
+                {"portfolio_id": portfolio_id},
                 {
                     "$set": {
                         f"positions.{asset_id}": {
                             "market_question": question,
                             "quantity": quantity,
+                            "total_cost": bid,
                             "avg_price": execution_price,
+                            "created_at": datetime.now(timezone.utc),
+                            "updated_at": datetime.now(timezone.utc),
                         }
                     }
                 },
@@ -454,12 +500,14 @@ def trade():
             )
 
         flash(
-            f"Executed bid {bid}. Bought {quantity} shares at {execution_price}",
+            f"Executed bid ${bid:.2f}. Bought {quantity:.2f} shares at ${execution_price:.4f}",
             "success",
         )
+        return jsonify({"success": True, "redirect": url_for("portfolio")})
     except Exception as e:
         print(f"Error in trade: {e}")
-    return jsonify({"success": True, "redirect": url_for("portfolio")})
+        flash("An unexpected error occurred during the trade.", "error")
+        return jsonify({"success": False, "redirect": url_for("portfolio")})
 
 
 # TEMP: pretend the user has these markets on their watchlist

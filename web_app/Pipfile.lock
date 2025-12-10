@@ -663,6 +663,15 @@
             "markers": "python_version >= '3.10'",
             "version": "==9.0.2"
         },
+        "pytest-cov": {
+            "hashes": [
+                "sha256:33c97eda2e049a0c5298e91f519302a1334c26ac65c1a483d6206fd458361af1",
+                "sha256:3b8e9558b16cc1479da72058bdecf8073661c7f57f7d3c5f22a1c23507f2d861"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.9'",
+            "version": "==7.0.0"
+        },
         "python-dotenv": {
             "hashes": [
                 "sha256:42667e897e16ab0d66954af0e60a9caa94f0fd4ecf3aaf6d2d260eec1aa36ad6",
@@ -945,6 +954,7 @@
                 "sha256:fe81055d8c6c9de76d60c94ddea73c290b416e061d40d542b24a5871bad498b7",
                 "sha256:ff45e0cd8451e293b63ced93161e189780baf444119391b3e7d25315060368a6"
             ],
+            "index": "pypi",
             "markers": "python_version >= '3.10'",
             "version": "==7.13.0"
         },
