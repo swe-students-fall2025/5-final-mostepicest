@@ -7,13 +7,13 @@
 }
 
 body {
-  background: #f5f4ff;              
+  background: #f5f4ff;
   color: #0f172a;
 }
 
 /*our brand colors*/
 :root {
-  --accent: #6366f1;                
+  --accent: #6366f1;
   --accent-soft: #e0e7ff;
   --accent-dark: #4f46e5;
   --border-subtle: #e5e7eb;
@@ -147,14 +147,14 @@ body {
 /*cards*/
 .card {
   background: linear-gradient(180deg, #ffffff 0%, #fafaff 80%);
-  border-radius: 22px;                     
+  border-radius: 22px;
   padding: 22px;
   position: relative;
   overflow: hidden;
   box-shadow:
     0 12px 28px rgba(15, 23, 42, 0.04),
     0 4px 8px rgba(15, 23, 42, 0.03);
-  border: 1px solid #ecebff;               
+  border: 1px solid #ecebff;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -564,7 +564,7 @@ body {
 
 .back-link {
   text-decoration: none;
-  color: #6c4ef2; 
+  color: #6c4ef2;
   font-weight: 500;
   display: inline-block;
   margin-bottom: 1rem;
@@ -798,7 +798,6 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
-<<<<<<< HEAD
 .chart-interval-selector {
   display: flex;
   align-items: center;
@@ -876,7 +875,7 @@ body {
   margin: 2.5rem 0 1.5rem 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;  
+  align-items: flex-start;
 }
 
 .page-title {
@@ -897,13 +896,11 @@ body {
 }
 
 .markets-grid {
->>>>>>> 84640c14b539bd7a1a090340ab4c282527114711
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-<<<<<<< HEAD
 .historical-price-item {
   display: flex;
   flex-direction: column;
@@ -968,8 +965,6 @@ body {
   overflow-y: auto;
 }
 
-=======
->>>>>>> 84640c14b539bd7a1a090340ab4c282527114711
 /*trade ticket*/
 
 .trade-form {
