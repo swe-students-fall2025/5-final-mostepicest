@@ -1,4 +1,6 @@
 import os
+import json
+import time
 import sys
 import re
 import uuid
@@ -16,6 +18,8 @@ load_dotenv()
 
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
+MARKET_CACHE = {}
+CACHE_TTL = 300
 
 app.secret_key = os.getenv("SECRET_KEY", "dev_secret")
 PRICE_SERVICE_URL= os.getenv("PRICE_SERVICE_URL", "http://localhost:8003")
@@ -32,6 +36,22 @@ except Exception as e:
     print(f"Error connecting to MongoDB: {e}")
     raise e
 
+def cache_market(slug, market):
+    print(f"Caching: {slug}")
+    MARKET_CACHE[slug] = {
+        "market": market,
+        "timestamp": time.time()
+    }
+
+def get_cached_market(slug):
+    entry = MARKET_CACHE.get(slug)
+    if not entry:
+        return None
+    # Check TTL
+    if time.time() - entry["timestamp"] > CACHE_TTL:
+        del MARKET_CACHE[slug]
+        return None
+    return entry["market"]
 
 class User(flask_login.UserMixin):
     def __init__(self, user_id, email, username, portfolio_id, balance=0.0):
@@ -179,17 +199,18 @@ def markets():
     if q: 
         try:
             page = page if page else 1
-            app.logger.info("BEFORE")
             resp = requests.get(f"{SEARCH_URL}/search", params={"q": q, "page": page})
-            app.logger.info("AFTER")
-            app.logger.info(f"RESPONSE: {resp.json()}")
             data = resp.json() if resp.status_code == 200 else []
             active_markets = []
             for event in data.get("events", []):
                 for m in event.get("markets", []):
                     if m.get("active") is True and m.get("closed") is False:
+                        if isinstance(m.get("outcomes"), str):
+                            m["outcomes"] = json.loads(m["outcomes"])
+                        if isinstance(m.get("outcomePrices"), str):
+                            m["outcomePrices"] = json.loads(m["outcomePrices"])
                         active_markets.append(m)
-            print(active_markets)
+                        cache_market(m['slug'], m)
         except Exception as e:
             markets_data = []
             print(e)
@@ -200,10 +221,16 @@ def markets():
 @app.route("/market_details")
 @flask_login.login_required
 def market_details():
-    market = request.args.get("market")
+    print(MARKET_CACHE.keys())
+    slug = request.args.get("slug")
+    print(slug)
+    market = get_cached_market(slug)
     if not market:
         return "Market does not exist", 400
-    print(market)
+    if isinstance(market.get("outcomes"), str):
+        market["outcomes"] = json.loads(market["outcomes"])
+    if isinstance(market.get("outcomePrices"), str):
+        market["outcomePrices"] = json.loads(market["outcomePrices"])
     return render_template("market_detail.html",market=market)
 
 @app.route("/trade", methods=["POST"])

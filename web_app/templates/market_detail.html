@@ -32,10 +32,10 @@
         <div class="card-main market-summary-main">
           <div class="market-prices">
             <span class="value-chip positive">
-              Yes: {{ "%.0f"|format((m.outcomePrices[0] | float) * 100) }}%
+              Yes: {{ "%.0f"|format((market.outcomePrices[0] | float) * 100) }}%
             </span>
             <span class="value-chip negative">
-              No: {{ "%.0f"|format((m.outcomePrices[1] | float) * 100) }}%
+              No: {{ "%.0f"|format((market.outcomePrices[1] | float) * 100) }}%
             </span>
           </div>
           <p class="hint">
@@ -84,7 +84,7 @@
               <div>
                 <span class="label">Est. price</span>
                 <span class="value">
-                  ${{ "%.2f"|format(market.yes_price) }} / share
+                    ${{ "%.2f"|format((market.outcomePrices[0] | float) * 100) }} / share
                 </span>
               </div>
               <div>
