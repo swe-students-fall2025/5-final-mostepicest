@@ -36,16 +36,16 @@
     <div class="card-main">
       <div class="market-prices">
         <span class="value-chip positive">
-          Yes {{ "%.0f"|format(m.yes_price * 100) }}%
+          Yes: {{ "%.0f"|format((m.outcomePrices[0] | float) * 100) }}%
         </span>
         <span class="value-chip negative">
-          No {{ "%.0f"|format((1 - m.yes_price) * 100) }}%
+          No {{ "%.0f"|format((m.outcomePrices[1] | float) * 100) }}%
         </span>
       </div>
     </div>
 
    <div class="card-actions">
-  <a class="btn-outline" href="{{ url_for('market_detail', market_id=m.id) }}">
+  <a class="btn-outline" href="{{ url_for('market_details', market=m) }}">
     Open market
   </a>
 </div>

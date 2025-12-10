@@ -1,7 +1,9 @@
 import os
+import sys
 import re
 import uuid
 import requests
+import logging
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 
@@ -16,7 +18,8 @@ app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
 app.secret_key = os.getenv("SECRET_KEY", "dev_secret")
-MARKET_SERVICE_URL = os.getenv("MARKET_SERVICE_URL", "http://localhost:8001")
+PRICE_SERVICE_URL= os.getenv("PRICE_SERVICE_URL", "http://localhost:8003")
+SEARCH_URL= os.getenv("SEARCH_URL", "http://localhost:8001")
 MONGO_URI = os.getenv("MONGO_URI")
 
 login_manager = flask_login.LoginManager()
@@ -31,24 +34,25 @@ except Exception as e:
 
 
 class User(flask_login.UserMixin):
-    def __init__(self, user_id, email, username, balance=0.0):
+    def __init__(self, user_id, email, username, portfolio_id, balance=0.0):
         self.id = user_id
         self.email = email
         self.username = username
         self.balance = balance
+        self.portfolio_id = portfolio_id
 
 @login_manager.user_loader
 def load_user(user_id):
     u = db.users.find_one({"user_id": user_id})
     if u:
-        return User(u["user_id"], u["email"], u["username"], u.get("balance", 0.0))
+        return User(u["user_id"], u["email"], u["username"], u['portfolio_id'])
     return None
 
 def fetch_live_prices(token_ids):
     if not token_ids:
         return {}
     try:
-        resp = requests.post(f"{MARKET_SERVICE_URL}/clob/prices", json={"tokens": token_ids})
+        resp = requests.post(f"{PRICE_SERVICE_URL}/real_time_ws_price", json={"asset_ids": token_ids})
         if resp.status_code == 200:
             return resp.json()
     except Exception as e:
@@ -68,7 +72,7 @@ def register():
         email = request.form.get("email")
         username = request.form.get("username")
         password = request.form.get("password")
-        balance = request.form.get("balance",1000.00)
+        starting_balance = float(request.form.get("balance",0.0))
         if db.users.find_one({"email": email}):
             flash("Email exists", "error")
             return redirect(url_for("register"))
@@ -78,11 +82,21 @@ def register():
             "email": email,
             "username": username,
             "password": bcrypt.generate_password_hash(password).decode("utf-8"),
-            "balance": starting_balance, 
+            "portfolio_id": str(uuid.uuid4()),
             "created_at": datetime.now(timezone.utc),
         }
         db.users.insert_one(new_user)
-        flask_login.login_user(User(new_user["user_id"], email, username, 1000.0))
+
+        new_user_portfolio = {
+            "portfolio_id": new_user['portfolio_id'],
+            "balance": starting_balance,
+            "created_at": new_user["created_at"],
+            "positions": {},
+            "transaction_history": {}
+            }
+        db.portfolios.insert_one(new_user_portfolio)
+
+        flask_login.login_user(User(new_user["user_id"], email, username, new_user['portfolio_id']))
         return redirect(url_for("portfolio"))
     return render_template("register.html")
 
@@ -94,7 +108,7 @@ def login():
         user = db.users.find_one({"email": email})
         
         if user and bcrypt.check_password_hash(user["password"], password):
-            flask_login.login_user(User(user["user_id"], user["email"], user["username"], user.get("balance", 0.0)))
+            flask_login.login_user(User(new_user["user_id"], email, username, new_user['portfolio_id']))
             return redirect(url_for("portfolio"))
         flash("Invalid credentials", "error")
     return render_template("login.html")
@@ -104,15 +118,18 @@ def login():
 def logout():
     flask_login.logout_user()
     return redirect(url_for("login"))
+
 @app.route("/portfolio")
 @flask_login.login_required
 def portfolio():
     user_id = flask_login.current_user.id
+    portfolio_id = flask_login.current_user.portfolio_id
     
     # 1. Get Positions from DB
-    positions = list(db.positions.find({"user_id": user_id}))
-    
+    portfolio = db.portfolios.find_one({"portfolio_id": portfolio_id})
+
     # 2. Get Real Prices for these assets
+    positions = portfolio['positions']
     asset_ids = [p["asset_id"] for p in positions]
     live_prices = fetch_live_prices(asset_ids)
 
@@ -147,7 +164,7 @@ def portfolio():
         "username": flask_login.current_user.username,
         "balance": flask_login.current_user.balance,
         "total_value": total_value,
-        "change_today": total_pnl  # <--- FIXED: Added this key
+        "change_today": total_pnl  
     }
 
     # FIXED: Pass as 'user_info' instead of 'current_user' to avoid breaking base.html
@@ -156,15 +173,38 @@ def portfolio():
 @app.route("/markets")
 @flask_login.login_required
 def markets():
-    q = request.args.get("q", "crypto").strip() or "crypto"
-    try:
-        resp = requests.get(f"{MARKET_SERVICE_URL}/search", params={"q": q, "page": 1})
-        markets_data = resp.json() if resp.status_code == 200 else []
-    except:
-        markets_data = []
-        flash("Market service unreachable", "error")
+    q = request.args.get("q", "").strip()
+    page = request.args.get("page", "").strip()
+    active_markets = []
+    if q: 
+        try:
+            page = page if page else 1
+            app.logger.info("BEFORE")
+            resp = requests.get(f"{SEARCH_URL}/search", params={"q": q, "page": page})
+            app.logger.info("AFTER")
+            app.logger.info(f"RESPONSE: {resp.json()}")
+            data = resp.json() if resp.status_code == 200 else []
+            active_markets = []
+            for event in data.get("events", []):
+                for m in event.get("markets", []):
+                    if m.get("active") is True and m.get("closed") is False:
+                        active_markets.append(m)
+            print(active_markets)
+        except Exception as e:
+            markets_data = []
+            print(e)
+            flash("Search service unreachable", "error")
 
-    return render_template("markets.html", markets=markets_data, query=q)
+    return render_template("markets.html", markets=active_markets, query=q)
+
+@app.route("/market_details")
+@flask_login.login_required
+def market_details():
+    market = request.args.get("market")
+    if not market:
+        return "Market does not exist", 400
+    print(market)
+    return render_template("market_detail.html",market=market)
 
 @app.route("/trade", methods=["POST"])
 @flask_login.login_required
@@ -193,33 +233,41 @@ def trade():
         flash(f"Insufficient funds. Cost: ${cost:.2f}", "error")
         return redirect(url_for("portfolio"))
 
-    # 3. Execute (Update DB)
-    db.users.update_one(
-        {"user_id": flask_login.current_user.id},
+    # 3. Deduct cost atomically
+    result = db.portfolios.update_one(
+        {"_id": portfolio_id, "balance": {"$gte": cost}},  # ensure enough balance
         {"$inc": {"balance": -cost}}
     )
+    if result.matched_count == 0:
+        flash("Insufficient funds. Trade aborted.", "error")
+        return redirect(url_for("portfolio"))
 
-    # Upsert position
-    existing = db.positions.find_one({"user_id": flask_login.current_user.id, "asset_id": asset_id})
-    if existing:
-        # Calculate new weighted average
-        old_q = existing["quantity"]
-        old_avg = existing["avg_price"]
+    current_position = db.portfolios.find_one(
+        {"_id": portfolio_id, f"positions.{asset_id}": {"$exists": True}},
+        {f"positions.{asset_id}": 1}
+    )
+    if current_position:
+        # Asset exists → calculate new weighted average
+        old_q = current_position["positions"][asset_id]["quantity"]
+        old_avg = current_position["positions"][asset_id]["avg_price"]
         new_q = old_q + quantity
-        new_avg = ((old_q * old_avg) + cost) / new_q
-        
-        db.positions.update_one(
-            {"_id": existing["_id"]},
-            {"$set": {"quantity": new_q, "avg_price": new_avg}}
+        new_avg = ((old_q * old_avg) + (quantity * execution_price)) / new_q
+
+        db.portfolios.update_one(
+            {"_id": portfolio_id},
+            {"$set": {f"positions.{asset_id}.quantity": new_q,
+                      f"positions.{asset_id}.avg_price": new_avg}}
         )
     else:
-        db.positions.insert_one({
-            "user_id": flask_login.current_user.id,
-            "asset_id": asset_id,
-            "market_question": question,
-            "quantity": quantity,
-            "avg_price": execution_price
-        })
+        db.portfolios.update_one(
+            {"_id": portfolio_id},
+            {"$set": {f"positions.{asset_id}": {
+                "market_question": question,
+                "quantity": quantity,
+                "avg_price": execution_price
+            }}},
+            upsert=True
+        )
 
     flash(f"Bought {quantity} shares at {execution_price}", "success")
     return redirect(url_for("portfolio"))
@@ -235,4 +283,12 @@ def settings():
     return render_template("settings.html")
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # Detect environment: "production" vs "development"
+    ENV = os.environ.get("FLASK_ENV", "development")
+
+    if ENV == "production":
+        # Docker / DigitalOcean mode
+        app.run(host="0.0.0.0", port=5000, debug=False)
+    else:
+        # Local development mode
+        app.run(debug=True)
