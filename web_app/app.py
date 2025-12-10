@@ -10,7 +10,7 @@ import logging
 from dotenv import load_dotenv
 from datetime import datetime, timezone
 
-from flask import Flask, abort, redirect, render_template, request, url_for, flash
+from flask import Flask, abort, redirect, render_template, request, url_for, flash, jsonify
 import flask_login
 from flask_bcrypt import Bcrypt
 from pymongo import MongoClient
@@ -80,7 +80,7 @@ def fetch_live_prices(token_ids):
         print(f"Price Fetch Error: {e}")
     return {}
 
-def fetch_historical_prices(asset_ids, interval="max"):
+def fetch_historical_prices(asset_ids, interval="1h", fidelity=None):
     """Fetch historical prices for given asset IDs"""
     print("IN FLASK:", asset_ids)
     if not asset_ids:
@@ -92,6 +92,8 @@ def fetch_historical_prices(asset_ids, interval="max"):
             "assets": asset_ids,  # Pass as list, requests will format as ?assets=id1&assets=id2
             "interval": interval
         }
+        if fidelity is not None:
+            params["fidelity"] = fidelity
         
         print(f"Fetching from: {PRICE_SERVICE_URL}/historical_prices")
         print(f"Params: {params}")
@@ -280,12 +282,34 @@ def market_details():
         if isinstance(clob_id, list):
             asset_ids = [str(id) for id in clob_id if id]
     
-    # Fetch historical prices
+    # Fetch historical prices (default to 1h interval)
     historical_prices = {}
     if asset_ids:
-        historical_prices = fetch_historical_prices(asset_ids)
+        historical_prices = fetch_historical_prices(asset_ids, interval="1h")
     
     return render_template("market_detail.html", market=market, historical_prices=historical_prices)
+
+@app.route("/api/historical_prices")
+@flask_login.login_required
+def api_historical_prices():
+    """API endpoint to fetch historical prices with interval and fidelity"""
+    asset_ids = request.args.getlist("assets")
+    interval = request.args.get("interval", "max")
+    fidelity = request.args.get("fidelity", type=int)
+    
+    if not asset_ids:
+        return jsonify({"error": "No asset IDs provided"}), 400
+    
+    # Build params for price API
+    params = {
+        "assets": asset_ids,
+        "interval": interval
+    }
+    if fidelity is not None:
+        params["fidelity"] = fidelity
+    
+    historical_prices = fetch_historical_prices(asset_ids, interval, fidelity)
+    return jsonify(historical_prices)
 
 @app.route("/trade", methods=["POST"])
 @flask_login.login_required

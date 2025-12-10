@@ -786,11 +786,67 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
+.chart-interval-selector {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0 0;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.interval-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555574;
+}
+
+.interval-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.interval-btn {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--border-subtle);
+  background: #ffffff;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #555574;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.interval-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.interval-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
 .chart-container {
   position: relative;
-  height: 400px;
+  height: 500px; /* give the chart more vertical space */
   width: 100%;
-  padding: 1rem;
+  padding: 0; /* let the canvas span full card width */
+  margin: 0 0 0.75rem 0; /* keep a small gap above controls */
+}
+
+/* Make the history card stack chart + buttons and let chart span full width */
+.market-history-card .card-main {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .historical-prices-container {

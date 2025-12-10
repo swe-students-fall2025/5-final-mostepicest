@@ -68,6 +68,20 @@
             <div id="historicalPricesData" style="display: none;">
               {{ historical_prices | tojson | safe }}
             </div>
+            <div id="assetIdsData" style="display: none;">
+              {{ market.clobTokenIds | tojson | safe }}
+            </div>
+            <div class="chart-interval-selector">
+              <label class="interval-label">Interval:</label>
+              <div class="interval-buttons">
+                <button type="button" class="interval-btn" data-interval="1m">1m</button>
+                <button type="button" class="interval-btn active" data-interval="1h">1h</button>
+                <button type="button" class="interval-btn" data-interval="6h">6h</button>
+                <button type="button" class="interval-btn" data-interval="1d">1d</button>
+                <button type="button" class="interval-btn" data-interval="1w">1w</button>
+                <button type="button" class="interval-btn" data-interval="max">max</button>
+              </div>
+            </div>
           {% else %}
             <div class="chart-placeholder">
               <span>No historical price data available for this market.</span>

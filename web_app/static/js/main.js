@@ -110,19 +110,141 @@ document.addEventListener("DOMContentLoaded", () => {
   // Historical price chart rendering (only on market detail page)
   const priceChartCanvas = document.getElementById("priceChart");
   if (priceChartCanvas) {
+    // Set up interval selector buttons
+    const intervalButtons = document.querySelectorAll('.interval-btn');
+    console.log("Found interval buttons:", intervalButtons.length);
+    
+    if (intervalButtons.length > 0) {
+      intervalButtons.forEach(btn => {
+        console.log("Setting up button:", btn.dataset.interval);
+        btn.addEventListener('click', function(e) {
+          e.preventDefault();
+          console.log("Button clicked:", this.dataset.interval);
+          // Remove active class from all buttons
+          intervalButtons.forEach(b => b.classList.remove('active'));
+          // Add active class to clicked button
+          this.classList.add('active');
+          // Get interval and reload chart
+          const interval = this.dataset.interval;
+          console.log("Loading interval:", interval);
+          loadChartWithInterval(interval);
+        });
+      });
+    } else {
+      console.warn("No interval buttons found");
+    }
+
     // Load Chart.js dynamically if not already loaded
     if (typeof Chart === 'undefined') {
       const script = document.createElement('script');
       script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-      script.onload = () => initializePriceChart();
+      script.onload = () => initializePriceChart('1h');
       document.head.appendChild(script);
     } else {
-      initializePriceChart();
+      initializePriceChart('1h');
     }
   }
 
-  function initializePriceChart() {
-    console.log("Chart script loading...");
+  let currentChart = null;
+
+  function loadChartWithInterval(interval) {
+    console.log("Loading chart with interval:", interval);
+    const assetIdsElement = document.getElementById("assetIdsData");
+    if (!assetIdsElement) {
+      console.error("assetIdsData element not found");
+      return;
+    }
+
+    let assetIds;
+    try {
+      const parsed = JSON.parse(assetIdsElement.textContent);
+      console.log("Parsed asset IDs:", parsed, typeof parsed);
+      
+      // Ensure assetIds is an array
+      if (Array.isArray(parsed)) {
+        assetIds = parsed;
+      } else if (typeof parsed === 'string') {
+        // If it's a string, try to parse it again or convert to array
+        try {
+          assetIds = JSON.parse(parsed);
+        } catch {
+          assetIds = [parsed];
+        }
+      } else if (parsed !== null && parsed !== undefined) {
+        // If it's an object or other type, try to convert to array
+        assetIds = [parsed];
+      } else {
+        console.error("Invalid asset IDs format:", parsed);
+        return;
+      }
+      
+      // Ensure it's still an array
+      if (!Array.isArray(assetIds)) {
+        assetIds = [assetIds];
+      }
+      
+      console.log("Final asset IDs:", assetIds);
+    } catch (e) {
+      console.error("Error parsing asset IDs:", e);
+      return;
+    }
+
+    if (!assetIds || assetIds.length === 0) {
+      console.error("No asset IDs found");
+      return;
+    }
+
+    // Ensure assetIds is an array
+    if (!Array.isArray(assetIds)) {
+      console.error("assetIds is not an array:", assetIds);
+      assetIds = [assetIds];
+    }
+    
+    // Build query string for multiple assets
+    const params = new URLSearchParams();
+    assetIds.forEach(id => {
+      if (id) {
+        params.append('assets', id);
+      }
+    });
+    params.append('interval', interval);
+    
+    // Add fidelity parameter based on interval
+    if (interval === '1m') {
+      params.append('fidelity', '10');
+    } else if (interval === '1w') {
+      params.append('fidelity', '5');
+    }
+    // Other intervals don't need fidelity
+
+    console.log("Fetching from:", `/api/historical_prices?${params.toString()}`);
+
+    // Fetch new data
+    fetch(`/api/historical_prices?${params.toString()}`)
+      .then(response => {
+        console.log("Response status:", response.status);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log("Received data:", data);
+        // Update the hidden data element
+        const dataElement = document.getElementById("historicalPricesData");
+        if (dataElement) {
+          dataElement.textContent = JSON.stringify(data);
+        }
+        // Reinitialize chart with new data
+        initializePriceChart(interval);
+      })
+      .catch(error => {
+        console.error("Error fetching historical prices:", error);
+      });
+  }
+
+  function initializePriceChart(interval = '1h') {
+    console.log("Initializing chart with interval:", interval);
     const dataElement = document.getElementById("historicalPricesData");
     if (!dataElement) {
       console.error("historicalPricesData element not found");
@@ -147,13 +269,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // Process historical price data
     const datasets = [];
     const colors = [
-      { border: 'rgba(99, 102, 241, 1)', background: 'rgba(99, 102, 241, 0.1)' },
       { border: 'rgba(239, 68, 68, 1)', background: 'rgba(239, 68, 68, 0.1)' },
       { border: 'rgba(34, 197, 94, 1)', background: 'rgba(34, 197, 94, 0.1)' },
+      { border: 'rgba(99, 102, 241, 1)', background: 'rgba(99, 102, 241, 0.1)' },
       { border: 'rgba(251, 146, 60, 1)', background: 'rgba(251, 146, 60, 0.1)' }
     ];
     
     let colorIndex = 0;
+    let datasetIndex = 0;
     let allLabels = null;
     
     for (const [assetId, priceData] of Object.entries(historicalPrices)) {
@@ -185,8 +308,12 @@ document.addEventListener("DOMContentLoaded", () => {
         continue;
       }
       
+      // Fidelity filtering is now handled on the server side via API parameter
+      // No need to filter on client side anymore
+      let filteredPricePoints = pricePoints;
+      
       // Process price points to extract time and price
-      const chartData = pricePoints
+      const chartData = filteredPricePoints
         .map((point, index) => {
           // Extract timestamp - check for 't' field first (Polymarket format)
           let timestamp = null;
@@ -255,8 +382,15 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
       
+      const label =
+        datasetIndex === 1
+          ? "Yes"
+          : datasetIndex === 0
+            ? "No"
+            : `Asset ${assetId.substring(0, 8)}...`;
+
       datasets.push({
-        label: `Asset ${assetId.substring(0, 8)}...`,
+        label,
         data: chartData.map(point => point.price),
         borderColor: color.border,
         backgroundColor: color.background,
@@ -266,12 +400,24 @@ document.addEventListener("DOMContentLoaded", () => {
         pointRadius: 0,
         pointHoverRadius: 4
       });
+
+      datasetIndex++;
     }
     
     console.log(`Created ${datasets.length} datasets`);
     if (datasets.length === 0) {
       console.error("No datasets created");
-      ctx.parentElement.innerHTML = '<div class="chart-placeholder"><span>No valid price data to display.</span></div>';
+      // Don't destroy the chart, just show a message or keep the existing chart
+      if (!currentChart) {
+        // Only show placeholder if there's no existing chart
+        const container = ctx.parentElement;
+        if (!container.querySelector('.chart-placeholder')) {
+          const placeholder = document.createElement('div');
+          placeholder.className = 'chart-placeholder';
+          placeholder.innerHTML = '<span>No valid price data to display.</span>';
+          container.appendChild(placeholder);
+        }
+      }
       return;
     }
     
@@ -280,9 +426,22 @@ document.addEventListener("DOMContentLoaded", () => {
     
     console.log("Creating chart with", datasets.length, "datasets and", labels.length, "labels");
     
+    // Remove any placeholder messages
+    const container = ctx.parentElement;
+    const placeholder = container.querySelector('.chart-placeholder');
+    if (placeholder) {
+      placeholder.remove();
+    }
+    
+    // Destroy existing chart if it exists
+    if (currentChart) {
+      currentChart.destroy();
+      currentChart = null;
+    }
+    
     // Create the chart
     try {
-      new Chart(ctx, {
+      currentChart = new Chart(ctx, {
         type: 'line',
         data: {
           labels: labels,
@@ -339,6 +498,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 display: true,
                 text: 'Price (USD)'
               },
+              min: 0,
+              max: 1,
               grid: {
                 color: 'rgba(0, 0, 0, 0.05)'
               },
@@ -354,7 +515,17 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("Chart created successfully");
     } catch (error) {
       console.error("Error creating chart:", error);
-      ctx.parentElement.innerHTML = '<div class="chart-placeholder"><span>Error rendering chart. Check console for details.</span></div>';
+      // Don't replace the canvas, just log the error
+      // Keep the existing chart if it exists
+      if (!currentChart) {
+        const container = ctx.parentElement;
+        if (!container.querySelector('.chart-placeholder')) {
+          const placeholder = document.createElement('div');
+          placeholder.className = 'chart-placeholder';
+          placeholder.innerHTML = '<span>Error rendering chart. Check console for details.</span>';
+          container.appendChild(placeholder);
+        }
+      }
     }
   }
 });
