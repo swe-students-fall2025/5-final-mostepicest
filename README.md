@@ -10,6 +10,8 @@ MostEpicest — Final Project (SWE)
 
 PolyPaper is a paper-trading web application that lets users practice trading on event-based markets (similar to Polymarket) using real-time market data. Users can create an account, explore active event markets, and make trades with virtual funds. The users activity is tracked in a personal portfolio that updates with real-time returns, helping users learn how prediction markets work without risking real money.
 
+Live Demo: http://64.225.22.79/
+
 # FEATURES
 
 ## Web Application ('web_app/')
