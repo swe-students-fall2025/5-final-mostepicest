@@ -1,4 +1,5 @@
 import os
+import rich
 import json
 import time
 import sys
@@ -22,7 +23,7 @@ MARKET_CACHE = {}
 CACHE_TTL = 300
 
 app.secret_key = os.getenv("SECRET_KEY", "dev_secret")
-PRICE_SERVICE_URL= os.getenv("PRICE_SERVICE_URL", "http://localhost:8003")
+PRICE_SERVICE_URL= os.getenv("PRICE_SERVICE_URL", "http://localhost:8002")
 SEARCH_URL= os.getenv("SEARCH_URL", "http://localhost:8001")
 MONGO_URI = os.getenv("MONGO_URI")
 
@@ -77,6 +78,42 @@ def fetch_live_prices(token_ids):
             return resp.json()
     except Exception as e:
         print(f"Price Fetch Error: {e}")
+    return {}
+
+def fetch_historical_prices(asset_ids, interval="max"):
+    """Fetch historical prices for given asset IDs"""
+    print("IN FLASK:", asset_ids)
+    if not asset_ids:
+        return {}
+    try:
+        # FastAPI List[str] Query accepts multiple query params
+        # requests library automatically converts list to multiple query params
+        params = {
+            "assets": asset_ids,  # Pass as list, requests will format as ?assets=id1&assets=id2
+            "interval": interval
+        }
+        
+        print(f"Fetching from: {PRICE_SERVICE_URL}/historical_prices")
+        print(f"Params: {params}")
+        
+        resp = requests.get(
+            f"{PRICE_SERVICE_URL}/historical_prices",
+            params=params,
+            timeout=30
+        )
+        print(f"Response status: {resp.status_code}")
+        if resp.status_code == 200:
+            return resp.json()
+        else:
+            print(f"Error response: {resp.text}")
+    except requests.exceptions.ConnectionError as e:
+        print(f"Connection Error - Is price_api running on {PRICE_SERVICE_URL}? Error: {e}")
+    except requests.exceptions.Timeout as e:
+        print(f"Timeout Error: {e}")
+    except Exception as e:
+        print(f"Historical Price Fetch Error: {e}")
+        import traceback
+        traceback.print_exc()
     return {}
 
 
@@ -221,9 +258,7 @@ def markets():
 @app.route("/market_details")
 @flask_login.login_required
 def market_details():
-    print(MARKET_CACHE.keys())
     slug = request.args.get("slug")
-    print(slug)
     market = get_cached_market(slug)
     if not market:
         return "Market does not exist", 400
@@ -231,7 +266,26 @@ def market_details():
         market["outcomes"] = json.loads(market["outcomes"])
     if isinstance(market.get("outcomePrices"), str):
         market["outcomePrices"] = json.loads(market["outcomePrices"])
-    return render_template("market_detail.html",market=market)
+    
+    # Extract clob_id from market (list of two IDs)
+    asset_ids = []
+    clob_id = market.get("clobTokenIds")
+    if clob_id:
+        # Handle both list and string formats
+        if isinstance(clob_id, str):
+            try:
+                clob_id = json.loads(clob_id)
+            except (json.JSONDecodeError, TypeError):
+                clob_id = [clob_id]
+        if isinstance(clob_id, list):
+            asset_ids = [str(id) for id in clob_id if id]
+    
+    # Fetch historical prices
+    historical_prices = {}
+    if asset_ids:
+        historical_prices = fetch_historical_prices(asset_ids)
+    
+    return render_template("market_detail.html", market=market, historical_prices=historical_prices)
 
 @app.route("/trade", methods=["POST"])
 @flask_login.login_required

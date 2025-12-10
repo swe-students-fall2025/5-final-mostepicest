@@ -16,7 +16,11 @@
     <div class="market-header-meta">
       <div class="meta-item">
         <span class="label">24h volume</span>
-        <span class="value">${{ "%.0f"|format(market.volume24hr) }}</span>
+        {% if market.volume24hr is defined %}
+        <span class="value">${{ "%.2f"|format(market.volume24hr) }}</span>
+        {% else %}
+        <span class="value">N/A</span>
+        {% endif %}
       </div>
       <div class="meta-item">
         <span class="label">Market ID</span>
@@ -48,10 +52,27 @@
       <div class="card market-history-card">
         <div class="card-header">
           <span class="card-title">Price history</span>
-          <span class="card-subtitle">Chart coming soon</span>
+          <span class="card-subtitle">
+            {% if historical_prices %}
+              Historical data available
+            {% else %}
+              No historical data available
+            {% endif %}
+          </span>
         </div>
-        <div class="card-main chart-placeholder">
-          <span>Price chart will be added once data is wired up.</span>
+        <div class="card-main">
+          {% if historical_prices %}
+            <div class="chart-container">
+              <canvas id="priceChart"></canvas>
+            </div>
+            <div id="historicalPricesData" style="display: none;">
+              {{ historical_prices | tojson | safe }}
+            </div>
+          {% else %}
+            <div class="chart-placeholder">
+              <span>No historical price data available for this market.</span>
+            </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -67,8 +88,8 @@
             <div class="field">
               <label class="field-label">Direction</label>
               <div class="toggle-group">
-                <button type="button" class="chip chip-active">Yes</button>
-                <button type="button" class="chip">No</button>
+                <button type="button" class="chip chip-active" data-index=0>Yes</button>
+                <button type="button" class="chip" data-index=1>No</button>
               </div>
             </div>
 
@@ -83,13 +104,9 @@
             <div class="trade-summary">
               <div>
                 <span class="label">Est. price</span>
-                <span class="value">
-                    ${{ "%.2f"|format((market.outcomePrices[0] | float) * 100) }} / share
+                <span class="value" id="est-price" data-outcome-prices='{{ market.outcomePrices | tojson | safe }}'>
+                  ${{ "%.2f"|format((market.outcomePrices[0] | float) * 100) }} / share
                 </span>
-              </div>
-              <div>
-                <span class="label">Est. payout</span>
-                <span class="value">$0.00</span>
               </div>
             </div>
 
@@ -121,7 +138,7 @@
             </li>
             <li>
               <span class="label">Resolution</span>
-              <span class="value">TBD (will be defined by backend)</span>
+              <span class="value">{{market.description}}</span>
             </li>
           </ul>
         </div>

@@ -786,6 +786,83 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
+.chart-container {
+  position: relative;
+  height: 400px;
+  width: 100%;
+  padding: 1rem;
+}
+
+.historical-prices-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.historical-price-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.asset-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #555574;
+  margin-bottom: 0.25rem;
+}
+
+.price-list {
+  overflow-x: auto;
+}
+
+.price-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.price-table thead {
+  background: rgba(99, 102, 241, 0.1);
+  border-bottom: 2px solid var(--accent-soft);
+}
+
+.price-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #555574;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.price-table td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: #0f172a;
+}
+
+.price-table tbody tr:hover {
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.price-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.price-raw-data {
+  font-size: 0.75rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  color: #555574;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
 /*trade ticket*/
 
 .trade-form {
