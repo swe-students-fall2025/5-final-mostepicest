@@ -46,6 +46,7 @@ tomlkit = "==0.13.3"
 typing-extensions = "==4.15.0"
 urllib3 = "==2.6.1"
 werkzeug = "==3.1.4"
+colorama = "*"
 
 [dev-packages]
 black = "*"
