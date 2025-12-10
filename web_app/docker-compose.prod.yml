@@ -9,7 +9,8 @@ services:
     environment:
       FLASK_ENV: "production" 
       # This is what Flask app should use to call the API in prod.
-      API_BASE_URL: "http://64.225.22.79:8001"
+      SEARCH_URL: "http://64.225.22.79:8001"
+      PRICE_SERVICE_URL: "http://64.225.22.79:8002"
     ports:
       - "80:5000"
     restart: unless-stopped
