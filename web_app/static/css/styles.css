@@ -700,6 +700,18 @@ body {
   transform: none;
 }
 
+.btn-ghost {
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: #6c4ef2;
+}
+.btn-ghost[disabled] {
+  opacity: 0.7;
+}
+
 .auth-meta {
   margin-top: 4px;
   color: var(--text-muted);
@@ -786,6 +798,7 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
+<<<<<<< HEAD
 .chart-interval-selector {
   display: flex;
   align-items: center;
@@ -850,11 +863,47 @@ body {
 }
 
 .historical-prices-container {
+=======
+
+.page-section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+
+.page-header {
+  margin: 2.5rem 0 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;  
+}
+
+.page-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #1e1b4b;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 1.1rem;
+  color: #4b4b72;
+}
+
+
+.positions-search {
+  margin-bottom: 1.5rem;
+}
+
+.markets-grid {
+>>>>>>> 84640c14b539bd7a1a090340ab4c282527114711
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
+<<<<<<< HEAD
 .historical-price-item {
   display: flex;
   flex-direction: column;
@@ -919,6 +968,8 @@ body {
   overflow-y: auto;
 }
 
+=======
+>>>>>>> 84640c14b539bd7a1a090340ab4c282527114711
 /*trade ticket*/
 
 .trade-form {
