@@ -2,14 +2,13 @@
 {% block title %}Markets • PolyPaper{% endblock %}
 
 {% block content %}
-
-<section class="markets-header">
-  <div class="header-left">
+<div class="page-section">
+  <section class="page-header">
     <h1 class="page-title">Markets</h1>
     <p class="page-subtitle">
       Search for event markets and practice trading without the risk.
     </p>
-  </div>
+  </section>
 
   <form class="positions-search" method="get" action="{{ url_for('markets') }}">
     <input
@@ -20,7 +19,6 @@
     >
     <button class="btn-filter" type="submit">Search</button>
   </form>
-</section>
 
 {% if markets %}
 <section class="markets-grid">

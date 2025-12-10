@@ -453,6 +453,18 @@ def trade():
     return jsonify({"success": True, "redirect": url_for("portfolio")})
 
 
+# TEMP: pretend the user has these markets on their watchlist
+WATCHLIST_MARKET_IDS = [1, 3]
+
+
+@app.route("/watchlist")
+@flask_login.login_required
+def watchlist():
+    watchlist_markets = [m for m in ALL_MARKETS if m["id"] in WATCHLIST_MARKET_IDS]
+
+    return render_template("watchlist.html", markets=watchlist_markets)
+
+
 @app.route("/settings", methods=["GET", "POST"])
 @flask_login.login_required
 def settings():
