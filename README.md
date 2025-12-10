@@ -1,23 +1,14 @@
-# Poly Paper  
-A Full-Stack Paper Trading Simulation Platform  
-MostEpicest — Final Project (SWE)
-
 [![Web App CI](https://github.com/swe-students-fall2025/5-final-mostepicest/actions/workflows/web-app-ci.yml/badge.svg?branch=main)](https://github.com/swe-students-fall2025/5-final-mostepicest/actions/workflows/web-app-ci.yml)
 [![API CI](https://github.com/swe-students-fall2025/5-final-mostepicest/actions/workflows/api-ci.yml/badge.svg?branch=main)](https://github.com/swe-students-fall2025/5-final-mostepicest/actions/workflows/api-ci.yml)
 
----
+# Poly Paper
+
+A Full-Stack Paper Trading Simulation Platform  
+MostEpicest — Final Project (SWE)
 
 ## Overview 
 
-Poly Paper is a paper-trading web application built on top of Polymarket’s public APIs. 
-It allows users to register, log in, browse prediction markets, and (in future iterations) execute simulated trades-all without real funds. 
-
-The system is composed of two major components:
-
-- **Web Application (`web_app/`)** — A Flask-based interface that manages users, sessions, authentication, and the UI.
-- **API Layer (`api/`)** — A set of FastAPI microservices that provide market search, CLOB price retrieval, and WebSocket-based real-time data, all backed by Redis caching.
-
-Poly Paper is designed as a modular system: the UI interacts with separate, containerized services that proxy and cache Polymarket data. This separation enables flexible scaling, clearer responsibility boundaries, and an easier path for full paper-trade simulation.
+PolyPaper is a paper-trading web application that lets users practice trading on event-based markets (similar to Polymarket) using real-time market data. Users can create an account, explore active event markets, and make trades with virtual funds. The users activity is tracked in a personal portfolio that updates with real-time returns, helping users learn how prediction markets work without risking real money.
 
 # FEATURES
 
@@ -31,16 +22,53 @@ Poly Paper is designed as a modular system: the UI interacts with separate, cont
   * `/login`
   * `/portfolio` (mock data)
   * `/markets` and `/markets/<id>` (mock data)
-  * `/settings` (username update)
+  * `/settings` (username and balance update)
 
-### Run the web app locally:
+# INSTALLATION AND SETUP
+
+## 1. Prerequisites
+
+Before running the project locally, install the following:
+
+* Python 3.10+ (for web_app) and Python 3.11+ (for API services)
+* Pipenv (for managing the Flask app environment)
+* Docker and Docker Compose (for the API microservices and Redis)
+* A local or cloud-hosted MongoDB instance
+
+If MongoDB is not installed locally, you may use MongoDB Atlas and update your `.env` accordingly.
+
+**Example `.env`:**
+```
+MONGO_URI=mongodb://localhost:27017/polypaper
+SECRET_KEY=dev-secret-key-change-me
+API_BASE_URL=http://localhost:8001
+```
+
+## 2. Run the Web Application (Flask)
+
+Navigate to the Flask app directory:
+
 ```bash
 cd web_app
+```
+
+Install dependencies with Pipenv:
+
+```bash
 pipenv install --dev
+```
+
+Run the server:
+
+```bash
 pipenv run python app.py
 ```
 
-The app becomes available at: `http://127.0.0.1:5000`
+The web app becomes available at:
+
+```
+http://127.0.0.1:5000
+```
 
 ### API Layer (api/)
 
@@ -95,7 +123,6 @@ curl "http://localhost:8002/clob?tokens=123"
 ```
 
 If both commands return structured JSON, the API layer is functioning correctly.
----
 
 ## Environment Variables
 
@@ -117,78 +144,6 @@ REDIS_PORT=6379
 **Note:**
 * Use a secure secret key for production.
 * API_BASE_URL refers to the Search API endpoint during development.
-
----
-
-## Architecture Summary
-
-Poly Paper is a multi-service application with a clear separation between the user-facing interface and the market-data backend:
-
-- **Flask Web App (`web_app/`)**
-  - Manages sign-up, login, logout, and settings
-  - Serves HTML templates for markets, portfolio, and settings
-  - Talks to MongoDB for user data
-  - Will use the API layer for real Polymarket data in future iterations
-
-- **Fast API Microservices**
-  - Proxy Polymarket APIs
-  - Redis caching for performance
-  - Real-time updates via WebSockets
-
-- **Supporting Infrastructure**
-   - **MongoDB** — stores user accounts, hashed passwords, and metadata  
-   - **Redis** — shared caching backend for all API services  
-   - **Docker / Docker Compose** — containerization for the API layer and production deployment
-   - **Github Actions for CI/CD**
-
-**Data Flow (high-level)**
-
-1. User interacts with Flask UI.
-2. Flask handles auth + UI rendering.
-3. When market data is needed, the frontend (eventually) will call the API microservices via HTTP/WebSocket.
-4. APIs services fetch live data from Polymarket or return cached results from Redis.
-5. The data flows back to the frontend to render market/price information.
-
----
-
-# INSTALLATION AND SETUP
-
-## 1. Prerequisites
-
-Before running the project locally, install the following:
-
-* Python 3.10+ (for web_app) and Python 3.11+ (for API services)
-* Pipenv (for managing the Flask app environment)
-* Docker and Docker Compose (for the API microservices and Redis)
-* A local or cloud-hosted MongoDB instance
-
-If MongoDB is not installed locally, you may use MongoDB Atlas and update your `.env` accordingly.
-
-## 2. Run the Web Application (Flask)
-
-Navigate to the Flask app directory:
-
-```bash
-cd web_app
-```
-
-Install dependencies with Pipenv:
-
-```bash
-pipenv install --dev
-```
-
-Run the server:
-
-```bash
-pipenv run python app.py
-```
-
-The web app becomes available at:
-
-```
-http://127.0.0.1:5000
-```
 
 # TESTING
 
@@ -249,6 +204,43 @@ docker compose -f docker-compose.prod.yml up -d
 
 Environment variables for production are loaded from the server's .env file.
 
+## Architecture Summary
+
+The system is composed of two major components:
+
+- **Web Application (`web_app/`)** — A Flask-based interface that manages users, sessions, authentication, and the UI.
+- **API Layer (`api/`)** — A set of FastAPI microservices that provide market search, CLOB price retrieval, and WebSocket-based real-time data, all backed by Redis caching.
+
+Poly Paper is designed as a modular system: the UI interacts with separate, containerized services that proxy and cache Polymarket data. This separation enables flexible scaling, clearer responsibility boundaries, and an easier path for full paper-trade simulation.
+
+### Overview of Components
+- **Flask Web App (`web_app/`)**
+  - Manages sign-up, login, logout, and settings
+  - Serves HTML templates for markets, portfolio, and settings
+  - Talks to MongoDB for user data
+  - Will use the API layer for real Polymarket data in future iterations
+
+- **Fast API Microservices**
+  - Proxy Polymarket APIs
+  - Redis caching for performance
+  - Real-time updates via WebSockets
+
+- **Supporting Infrastructure**
+   - **MongoDB** — stores user accounts, hashed passwords, and metadata  
+   - **Redis** — shared caching backend for all API services  
+   - **Docker / Docker Compose** — containerization for the API layer and production deployment
+   - **Github Actions for CI/CD**
+
+**Data Flow (high-level)**
+
+1. User interacts with Flask UI.
+2. Flask handles auth + UI rendering.
+3. When market data is needed, the frontend (eventually) will call the API microservices via HTTP/WebSocket.
+4. APIs services fetch live data from Polymarket or return cached results from Redis.
+5. The data flows back to the frontend to render market/price information.
+
+---
+
 ## Project Contributors
 
 Poly Paper was developed collaboratively as part of a team project.
@@ -263,5 +255,4 @@ Poly Paper was developed collaboratively as part of a team project.
 
 **-[Omer Hortig](https://github.com/ohortig)**
 
-An exercise to put to practice software development teamwork, subsystem communication, containers, deployment, and CI/CD pipelines. See [instructions](./instructions.md) for details.
-
+---
