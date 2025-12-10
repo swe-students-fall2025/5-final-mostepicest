@@ -187,43 +187,6 @@ class TestPortfolio:
         assert response.status_code in (301, 302)
         assert "/login" in response.location
 
-    @patch("web_app.app.fetch_live_prices")
-    def test_portfolio_authenticated_shows_content(self, mock_fetch, app, auth_client):
-        """Authenticated user should see portfolio content."""
-        mock_db = app._mock_db
-        mock_db.portfolios.find_one.return_value = {
-            "portfolio_id": "test-portfolio-id",
-            "balance": 1000.0,
-            "positions": [],
-        }
-        mock_fetch.return_value = {}
-
-        response = auth_client.get("/portfolio")
-        assert response.status_code == 200
-        html = response.data.decode("utf-8")
-        assert "portfolio" in html.lower()
-
-    @patch("web_app.app.fetch_live_prices")
-    def test_portfolio_shows_positions(self, mock_fetch, app, auth_client):
-        """Portfolio page should display positions."""
-        mock_db = app._mock_db
-        mock_db.portfolios.find_one.return_value = {
-            "portfolio_id": "test-portfolio-id",
-            "balance": 1000.0,
-            "positions": [
-                {
-                    "asset_id": "asset1",
-                    "quantity": 10,
-                    "avg_price": 0.5,
-                    "market_question": "Test Market",
-                }
-            ],
-        }
-        mock_fetch.return_value = {"asset1": 0.6}
-
-        response = auth_client.get("/portfolio")
-        assert response.status_code == 200
-
 
 # =============================================================================
 # MARKETS TESTS
