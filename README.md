@@ -261,7 +261,7 @@ Poly Paper was developed collaboratively as part of a team project.
 
 **-[Jasir Nawar](https://github.com/jawarbx)**
 
-**-[Omer Ortig](https://github.com/ohortig)**
+**-[Omer Hortig](https://github.com/ohortig)**
 
 An exercise to put to practice software development teamwork, subsystem communication, containers, deployment, and CI/CD pipelines. See [instructions](./instructions.md) for details.
 
