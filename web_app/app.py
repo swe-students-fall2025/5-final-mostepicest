@@ -270,7 +270,9 @@ def markets():
     if q:
         try:
             page = page if page else 1
-            resp = requests.get(f"{SEARCH_URL}/search", params={"q": q, "page": page},timeout=300)
+            resp = requests.get(
+                f"{SEARCH_URL}/search", params={"q": q, "page": page}, timeout=300
+            )
             data = resp.json() if resp.status_code == 200 else []
             active_markets = []
             for event in data.get("events", []):
