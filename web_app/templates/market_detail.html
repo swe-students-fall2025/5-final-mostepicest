@@ -15,8 +15,12 @@
 
     <div class="market-header-meta">
       <div class="meta-item">
-        <span class="label">24h volume</span>
-        <span class="value">${{ "%.0f"|format(market.volume_24h) }}</span>
+        <span class="label">Total volume</span>
+        {% if market.volume is defined %}
+        <span class="value">${{ "%.3f"|format((market.volume|float)) }}</span>
+        {% else %}
+        <span class="value">N/A</span>
+        {% endif %}
       </div>
       <div class="meta-item">
         <span class="label">Market ID</span>
@@ -32,26 +36,53 @@
         <div class="card-main market-summary-main">
           <div class="market-prices">
             <span class="value-chip positive">
-              Yes {{ "%.0f"|format(market.yes_price * 100) }}%
+              Yes: {{ "%.0f"|format((market.outcomePrices[0] | float) * 100) }}%
             </span>
             <span class="value-chip negative">
-              No {{ "%.0f"|format((1 - market.yes_price) * 100) }}%
+              No: {{ "%.0f"|format((market.outcomePrices[1] | float) * 100) }}%
             </span>
           </div>
-          <p class="hint">
-            This market resolves based on an external real-world outcome.
-            You can practice taking either side using paper trades.
-          </p>
         </div>
       </div>
 
       <div class="card market-history-card">
         <div class="card-header">
           <span class="card-title">Price history</span>
-          <span class="card-subtitle">Chart coming soon</span>
+          <span class="card-subtitle">
+            {% if historical_prices %}
+              Historical data available
+            {% else %}
+              No historical data available
+            {% endif %}
+          </span>
         </div>
-        <div class="card-main chart-placeholder">
-          <span>Price chart will be added once data is wired up.</span>
+        <div class="card-main">
+          {% if historical_prices %}
+            <div class="chart-container">
+              <canvas id="priceChart"></canvas>
+            </div>
+            <div id="historicalPricesData" style="display: none;">
+              {{ historical_prices | tojson | safe }}
+            </div>
+            <div id="assetIdsData" style="display: none;">
+              {{ market.clobTokenIds | tojson | safe }}
+            </div>
+            <div class="chart-interval-selector">
+              <label class="interval-label">Interval:</label>
+              <div class="interval-buttons">
+                <button type="button" class="interval-btn" data-interval="1m">1m</button>
+                <button type="button" class="interval-btn active" data-interval="1h">1h</button>
+                <button type="button" class="interval-btn" data-interval="6h">6h</button>
+                <button type="button" class="interval-btn" data-interval="1d">1d</button>
+                <button type="button" class="interval-btn" data-interval="1w">1w</button>
+                <button type="button" class="interval-btn" data-interval="max">max</button>
+              </div>
+            </div>
+          {% else %}
+            <div class="chart-placeholder">
+              <span>No historical price data available for this market.</span>
+            </div>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -63,12 +94,16 @@
           <span class="card-title">Place a paper trade</span>
         </div>
         <div class="card-main">
-          <form class="trade-form" onsubmit="return false;">
+          <form class="trade-form" method="POST" action="{{ url_for('trade') }}"
+                data-asset-ids='{{ market.clobTokenIds | tojson | safe }}'
+                data-outcome-prices='{{ market.outcomePrices | tojson | safe }}'>
+            <input type="hidden" name="asset_id" id="trade-asset-id" value="{{ market.clobTokenIds[0] if market.clobTokenIds }}">
+            <input type="hidden" name="question" value="{{ market.question }}">
             <div class="field">
               <label class="field-label">Direction</label>
               <div class="toggle-group">
-                <button type="button" class="chip chip-active">Yes</button>
-                <button type="button" class="chip">No</button>
+                <button type="button" class="chip chip-active" data-index=0>Yes</button>
+                <button type="button" class="chip" data-index=1>No</button>
               </div>
             </div>
 
@@ -76,31 +111,25 @@
               <label class="field-label">Amount to bet (USD)</label>
               <div class="input-row">
                 <span class="prefix">$</span>
-                <input type="number" min="1" step="1" placeholder="100">
+                <input type="number" name="amount" id="trade-amount" min="1" step="1" placeholder="100" required>
               </div>
             </div>
 
             <div class="trade-summary">
               <div>
-                <span class="label">Est. price</span>
-                <span class="value">
-                  ${{ "%.2f"|format(market.yes_price) }} / share
+                <span class="label">Live price</span>
+                <span class="value" id="est-price"
+                    data-outcome-prices='{{ market.outcomePrices | tojson | safe }}'
+                    data-assetIds='{{ market.clobTokenIds | tojson | safe }}'
+                    ${{ "%.3f"|format((market.outcomePrices[0] | float)) }} / share>
                 </span>
-              </div>
-              <div>
-                <span class="label">Est. payout</span>
-                <span class="value">$0.00</span>
               </div>
             </div>
 
-            <button type="button" class="btn-primary btn-full" disabled>
-              Place trade (mock)
+            <button type="submit" class="btn-primary btn-full" id="submit-trade">
+              Place trade
             </button>
 
-            <p class="hint">
-              This is a front-end preview only. Trading logic will be enabled
-              once the backend / API is connected.
-            </p>
           </form>
         </div>
       </div>
@@ -112,16 +141,8 @@
         <div class="card-main">
           <ul class="meta-list">
             <li>
-              <span class="label">Region</span>
-              <span class="value">{{ market.region }}</span>
-            </li>
-            <li>
-              <span class="label">Category</span>
-              <span class="value">{{ market.category }}</span>
-            </li>
-            <li>
               <span class="label">Resolution</span>
-              <span class="value">TBD (will be defined by backend)</span>
+              <span class="value">{{market.description}}</span>
             </li>
           </ul>
         </div>

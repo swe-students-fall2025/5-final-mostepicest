@@ -7,13 +7,13 @@
 }
 
 body {
-  background: #f5f4ff;              
+  background: #f5f4ff;
   color: #0f172a;
 }
 
 /*our brand colors*/
 :root {
-  --accent: #6366f1;                
+  --accent: #6366f1;
   --accent-soft: #e0e7ff;
   --accent-dark: #4f46e5;
   --border-subtle: #e5e7eb;
@@ -147,14 +147,14 @@ body {
 /*cards*/
 .card {
   background: linear-gradient(180deg, #ffffff 0%, #fafaff 80%);
-  border-radius: 22px;                     
+  border-radius: 22px;
   padding: 22px;
   position: relative;
   overflow: hidden;
   box-shadow:
     0 12px 28px rgba(15, 23, 42, 0.04),
     0 4px 8px rgba(15, 23, 42, 0.03);
-  border: 1px solid #ecebff;               
+  border: 1px solid #ecebff;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -564,7 +564,7 @@ body {
 
 .back-link {
   text-decoration: none;
-  color: #6c4ef2; 
+  color: #6c4ef2;
   font-weight: 500;
   display: inline-block;
   margin-bottom: 1rem;
@@ -798,6 +798,71 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
+.chart-interval-selector {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0 0;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.interval-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555574;
+}
+
+.interval-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.interval-btn {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--border-subtle);
+  background: #ffffff;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #555574;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.interval-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.interval-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.chart-container {
+  position: relative;
+  height: 500px; /* give the chart more vertical space */
+  width: 100%;
+  padding: 0; /* let the canvas span full card width */
+  margin: 0 0 0.75rem 0; /* keep a small gap above controls */
+}
+
+/* Make the history card stack chart + buttons and let chart span full width */
+.market-history-card .card-main {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.historical-prices-container {
+=======
 
 .page-section {
   max-width: 1100px;
@@ -810,7 +875,7 @@ body {
   margin: 2.5rem 0 1.5rem 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;  
+  align-items: flex-start;
 }
 
 .page-title {
@@ -834,6 +899,70 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.historical-price-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.asset-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #555574;
+  margin-bottom: 0.25rem;
+}
+
+.price-list {
+  overflow-x: auto;
+}
+
+.price-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.price-table thead {
+  background: rgba(99, 102, 241, 0.1);
+  border-bottom: 2px solid var(--accent-soft);
+}
+
+.price-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #555574;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.price-table td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: #0f172a;
+}
+
+.price-table tbody tr:hover {
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.price-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.price-raw-data {
+  font-size: 0.75rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  color: #555574;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 /*trade ticket*/

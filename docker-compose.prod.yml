@@ -3,15 +3,17 @@ version: "3.9"
 services:
   redis:
     image: redis:7
-    container_name: api_redis
+    container_name: redis
     ports:
       - "6379:6379"
     command:
       - redis-server
       - --maxmemory
-      - 256mb
+      - 1gb
       - --maxmemory-policy
       - allkeys-lru
+      - --databases
+      - 3
     restart: unless-stopped
 
   search_api:
@@ -28,9 +30,9 @@ services:
       - redis
     restart: unless-stopped
 
-  clob_display:
-    image: danielleesignup/api-clob_display:latest
-    container_name: clob_display
+  price_api:
+    image: danielleesignup/api-price_api:latest
+    container_name: price_api
     env_file:
       - /opt/project_5/.env
     environment:
@@ -38,17 +40,6 @@ services:
       REDIS_PORT: 6379
     ports:
       - "8002:8002"
-    depends_on:
-      - redis
-    restart: unless-stopped
-
-  ws_clob:
-    image: danielleesignup/api-ws_clob:latest
-    container_name: ws_clob
-    env_file:
-      - /opt/project_5/.env
-    ports:
-      - "8003:8003"
     depends_on:
       - redis
     restart: unless-stopped
