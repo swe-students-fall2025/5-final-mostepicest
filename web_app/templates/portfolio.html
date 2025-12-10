@@ -11,7 +11,7 @@
     </div>
     <div class="card-main">
       <div class="card-value">
-        ${{ "%.2f"|format(current_user.balance) }}
+        ${{ "%.2f"|format(current_portfolio.balance) }}
       </div>
       <div class="card-change {{ 'positive' if current_user.change_today >= 0 else 'negative' }}">
         {% if current_user.change_today >= 0 %}▲{% else %}▼{% endif %}
