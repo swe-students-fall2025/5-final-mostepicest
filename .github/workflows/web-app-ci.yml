@@ -82,7 +82,7 @@ jobs:
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
           source: "web_app/docker-compose.prod.yml"
-          target: "/opt/project_5/web_app/"
+          target: "/opt/project_5/"
 
       - name: Deploy web_app via SSH
         uses: appleboy/ssh-action@v1.0.3
