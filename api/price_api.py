@@ -1,24 +1,27 @@
 "Historical price retrieval with caching and real time web socket data stream"
 
 import asyncio
-import json
-import threading
-import time
+import os
 from typing import Dict, List, Set
 
 import httpx
 from aiocache import Cache, cached
 from aiocache.serializers import JsonSerializer
-from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
-from websocket import WebSocketApp
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse
+from py_clob_client.client import ClobClient
+from py_clob_client.clob_types import BookParams
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 app = FastAPI(title="Polymarket historical price, clob price, and websocket price")
 
 HISTORICAL_PRICE_URL = "https://clob.polymarket.com/prices-history"
 
-WS_URL = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
-asset_queues: Dict[str, Set[asyncio.Queue]] = {}
-asset_connections: Dict[str, "PolymarketWS"] = {}
 
 # Default Redis cache settings
 DEFAULT_CACHE_SETTINGS = {
@@ -38,7 +41,9 @@ def historical_key_builder(func, *args, **kwargs):
 
 # Fetch single asset from API with caching
 @cached(**DEFAULT_CACHE_SETTINGS, key_builder=historical_key_builder)
-async def fetch_historical(asset_id: str, interval: str = "1h", fidelity: int = 0) -> Dict:
+async def fetch_historical(
+    asset_id: str, interval: str = "1h", fidelity: int = 0
+) -> Dict:
     """Method to get historical price of an asset from polymarket"""
     params = {"market": asset_id, "interval": interval, "fidelity": fidelity}
     async with httpx.AsyncClient(timeout=30) as client:
@@ -60,7 +65,10 @@ async def get_historical_prices(
     if not assets:
         return {}
     # Fetch cached data per asset
-    tasks = [fetch_historical(asset_id=a, interval=interval, fidelity=fidelity) for a in assets]
+    tasks = [
+        fetch_historical(asset_id=a, interval=interval, fidelity=fidelity)
+        for a in assets
+    ]
     responses = await asyncio.gather(*tasks, return_exceptions=True)
 
     result = {}
@@ -68,7 +76,7 @@ async def get_historical_prices(
         if isinstance(data, Exception):
             print(f"Error fetching {asset}: {data}")
             continue
-        
+
         # Apply fidelity filtering if specified
         if fidelity is not None and isinstance(data, dict) and "history" in data:
             history = data["history"]
@@ -80,104 +88,69 @@ async def get_historical_prices(
                 if len(filtered_history) == 0 or filtered_history[-1] != history[-1]:
                     filtered_history.append(history[-1])
                 data["history"] = filtered_history
-        
+
         result[asset] = data
 
     return result
 
 
-class PolymarketWS:
-    """Websocket Class for polymarket websocket endpoint"""
+Cache.DEFAULT_SETTINGS = {
+    "cache": Cache.REDIS,
+    "endpoint": os.getenv("REDIS_HOST", "redis"),
+    "port": int(os.getenv("REDIS_PORT", 6379)),
+    "ttl": 5,  # short TTL for near-realtime prices
+    "serializer": JsonSerializer(),
+    "namespace": "clob_price",
+}
 
-    def __init__(self, asset_ids: List[str]):
-        self.asset_ids = asset_ids
-        self.ws = WebSocketApp(
-            WS_URL,
-            on_message=self.on_message,
-            on_error=self.on_error,
-            on_close=self.on_close,
-            on_open=self.on_open,
-        )
-        self.thread = threading.Thread(target=self.ws.run_forever, daemon=True)
-
-    def start(self):
-        """Create starting thread"""
-        self.thread.start()
-
-    def on_open(self, ws):
-        """Opening method"""
-        payload = {"assets_ids": self.asset_ids, "type": "market"}
-        ws.send(json.dumps(payload))
-        threading.Thread(target=self.ping, args=(ws,), daemon=True).start()
-
-    def ping(self, ws):
-        """Ping helper for checking"""
-        while True:
-            try:
-                ws.send("PING")
-                time.sleep(10)
-            except Exception:
-                break
-
-    def on_message(self, message):
-        """Method to check if current queue has asset stream in it"""
-        try:
-            data = json.loads(message)
-            asset_id = data.get("token_id") or data.get("asset_id")
-            if asset_id and asset_id in asset_queues:
-                for queue in asset_queues[asset_id]:
-                    asyncio.run_coroutine_threadsafe(
-                        queue.put(data), asyncio.get_event_loop()
-                    )
-        except Exception:
-            pass
-
-    def on_error(self, error):
-        """General error method"""
-        print(f"WS Error: {error}")
-
-    def on_close(self, *_):
-        """Closing method"""
-        print("WS Closed")
+client = ClobClient("https://clob.polymarket.com")
 
 
-@app.websocket("/real_time_ws_price")
-async def clob_ws(websocket: WebSocket):
-    """Method to subscribe or unsubscribe from data stream for a set of assets"""
-    await websocket.accept()
-    queue = asyncio.Queue()
-    subscribed_assets: Set[str] = set()
+class RetryableHTTPError(Exception):
+    """Raised when a CLOB request should be retried."""
 
+    pass
+
+
+@retry(
+    retry=retry_if_exception_type(RetryableHTTPError),
+    wait=wait_exponential(multiplier=1, min=1, max=8),
+    stop=stop_after_attempt(5),
+)
+async def fetch_clob_prices(tokens: List[str]):
+    """Fetch real-time prices from CLOB with retry/backoff"""
     try:
-        while True:
-            msg = await websocket.receive_text()
-            data = json.loads(msg)
-            action = data.get("action")
-            assets = data.get("asset_ids", [])
+        book_params = [BookParams(token_id=t, side="BUY") for t in tokens]
+        prices = client.get_prices(book_params)
+    except Exception as e:
+        raise RetryableHTTPError(f"Failed to fetch CLOB prices: {e}") from e
 
-            if action == "subscribe":
-                for asset_id in assets:
-                    if asset_id not in asset_queues:
-                        asset_queues[asset_id] = set()
-                    asset_queues[asset_id].add(queue)
-                    subscribed_assets.add(asset_id)
+    result = []
+    for _, p in prices.items():
+        result.append(p["BUY"])
+    return result
 
-                    if asset_id not in asset_connections:
-                        conn = PolymarketWS([asset_id])
-                        conn.start()
-                        asset_connections[asset_id] = conn
 
-                await websocket.send_json({"status": "subscribed", "asset_ids": assets})
+@cached(
+    key_builder=lambda f, *args, **kwargs: "clob:" + "_".join(str(t) for t in args[0])
+)
+async def get_clob_prices(tokens: List[str]):
+    """Cached wrapper around fetch_clob_prices."""
+    return await fetch_clob_prices(tokens)
 
-            elif action == "disconnect":
-                break
 
-            while not queue.empty():
-                await websocket.send_json(await queue.get())
+@app.get("/clob")
+async def clob_endpoint(
+    tokens: str = Query(..., description="Comma-separated list of CLOB token IDs")
+):
+    """
+    Get CLOB prices for a set of token IDs.
+    Returns a list of dicts including `best_bid`, `best_ask`, and calculated `mid_price`.
+    """
 
-    except WebSocketDisconnect:
-        pass
-    finally:
-        for asset_id in subscribed_assets:
-            if asset_id in asset_queues:
-                asset_queues[asset_id].discard(queue)
+    token_list = [t.strip() for t in tokens.split(",") if t.strip()]
+    if not token_list:
+        raise HTTPException(status_code=400, detail="No valid tokens provided")
+    result = await get_clob_prices(token_list)
+    print("IN CLOB ", result)
+    return JSONResponse(result)

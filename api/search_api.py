@@ -1,7 +1,7 @@
 "API to search polymarket"
 
-import logging
 import asyncio
+import logging
 import os
 import sys
 from typing import Dict, Set
@@ -21,7 +21,7 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 logging.basicConfig(
     level=logging.INFO,  # INFO and above
     format="%(asctime)s [%(levelname)s] %(message)s",
-    stream=sys.stdout  # ensure it goes to stdout for Docker
+    stream=sys.stdout,  # ensure it goes to stdout for Docker
 )
 
 app = FastAPI(title="Polymarket Search")
@@ -46,11 +46,15 @@ asset_connections: Dict[str, "PolymarketWS"] = {}
 @cached(key_builder=lambda f, *args, **kwargs: f"page:{args[0]}:{args[0]}")
 async def get_polymarket_search(q: str, page: int):
     """Method to search polymarket"""
-    params = {"q": q, 
-              "cache": "true", 
-              "search_profiles": "false",
-              "search_tags":"false",
-              "page": page}
+    params = {
+        "q": q,
+        "cache": "true",
+        "search_profiles": "false",
+        "search_tags": "false",
+        "closed": "false",
+        "ascending": "false",
+        "page": page,
+    }
     print(params)
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.get(SEARCH_URL, params=params)
@@ -65,4 +69,6 @@ async def search(q: str = Query(..., min_length=1), page: int = 1):
         return JSONResponse(data)
     except Exception as e:
         logging.error("Search error: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Could not retrieve query detail={e}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Could not retrieve query detail={e}"
+        ) from e

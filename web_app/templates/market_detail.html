@@ -98,7 +98,11 @@
           <span class="card-title">Place a paper trade</span>
         </div>
         <div class="card-main">
-          <form class="trade-form" onsubmit="return false;">
+          <form class="trade-form" method="POST" action="{{ url_for('trade') }}"
+                data-asset-ids='{{ market.clobTokenIds | tojson | safe }}'
+                data-outcome-prices='{{ market.outcomePrices | tojson | safe }}'>
+            <input type="hidden" name="asset_id" id="trade-asset-id" value="{{ market.clobTokenIds[0] if market.clobTokenIds }}">
+            <input type="hidden" name="question" value="{{ market.question }}">
             <div class="field">
               <label class="field-label">Direction</label>
               <div class="toggle-group">
@@ -111,21 +115,27 @@
               <label class="field-label">Amount to bet (USD)</label>
               <div class="input-row">
                 <span class="prefix">$</span>
-                <input type="number" min="1" step="1" placeholder="100">
+                <input type="number" name="amount" id="trade-amount" min="1" step="1" placeholder="100" required>
               </div>
             </div>
 
             <div class="trade-summary">
               <div>
                 <span class="label">Est. price</span>
-                <span class="value" id="est-price" data-outcome-prices='{{ market.outcomePrices | tojson | safe }}'>
-                  ${{ "%.2f"|format((market.outcomePrices[0] | float) * 100) }} / share
+                <span class="value" id="est-price"
+                    data-outcome-prices='{{ market.outcomePrices | tojson | safe }}'
+                    data-assetIds='{{ market.clobTokenIds | tojson | safe }}'
+                    ${{ "%.2f"|format((market.outcomePrices[0] | float)) }} / share>
                 </span>
+              </div>
+              <div>
+                <span class="label">Live price</span>
+                <span class="value" id="live-price">Loading...</span>
               </div>
             </div>
 
-            <button type="button" class="btn-primary btn-full" disabled>
-              Place trade (mock)
+            <button type="submit" class="btn-primary btn-full" id="submit-trade" disabled>
+              Place trade
             </button>
 
             <p class="hint">
