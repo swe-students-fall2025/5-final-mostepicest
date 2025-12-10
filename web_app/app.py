@@ -376,76 +376,81 @@ def live_prices():
 @flask_login.login_required
 def trade():
     """Execute a simulated trade based on real market prices."""
-    asset_id = request.form.get("asset_id")
-    quantity = float(request.form.get("amount", 0))
-    question = request.form.get("question", "Market")
-    portfolio_id = flask_login.current_user.portfolio_id
+    try:
+        data = request.get_json(force=True)
+        print(data)
+        asset_id = data.get("asset_id")
+        bid = float(data.get("bid", 0))
+        question = data.get("question")
 
-    if quantity <= 0:
-        flash("Invalid quantity", "error")
-        return redirect(url_for("markets"))
+        if bid <= 0:
+            flash("Invalid bid", "error")
+            return jsonify({"success": False, "redirect": url_for("markets")})
 
-    # 1. Get Real Price
-    prices = fetch_live_prices([asset_id])
-    execution_price = prices.get(asset_id)
+        # 1. Get Real Price
+        prices = fetch_live_prices([asset_id])
+        execution_price = float(prices.get(asset_id))
+        quantity = bid / execution_price
+        if not execution_price:
+            flash("Could not fetch price. Trade aborted.", "error")
+            return jsonify({"success": False, "redirect": url_for("markets")})
 
-    if not execution_price:
-        flash("Could not fetch price. Trade aborted.", "error")
-        return redirect(url_for("markets"))
-
-    cost = execution_price * quantity
-
-    # 2. Check Balance
-    if flask_login.current_user.balance < cost:
-        flash(f"Insufficient funds. Cost: ${cost:.2f}", "error")
-        return redirect(url_for("portfolio"))
-
-    # 3. Deduct cost atomically
-    result = db.portfolios.update_one(
-        {"_id": portfolio_id, "balance": {"$gte": cost}},  # ensure enough balance
-        {"$inc": {"balance": -cost}},
-    )
-    if result.matched_count == 0:
-        flash("Insufficient funds. Trade aborted.", "error")
-        return redirect(url_for("portfolio"))
-
-    current_position = db.portfolios.find_one(
-        {"_id": portfolio_id, f"positions.{asset_id}": {"$exists": True}},
-        {f"positions.{asset_id}": 1},
-    )
-    if current_position:
-        # Asset exists → calculate new weighted average
-        old_q = current_position["positions"][asset_id]["quantity"]
-        old_avg = current_position["positions"][asset_id]["avg_price"]
-        new_q = old_q + quantity
-        new_avg = ((old_q * old_avg) + (quantity * execution_price)) / new_q
-
-        db.portfolios.update_one(
-            {"_id": portfolio_id},
-            {
-                "$set": {
-                    f"positions.{asset_id}.quantity": new_q,
-                    f"positions.{asset_id}.avg_price": new_avg,
-                }
-            },
+        # 2. Check Balance
+        if flask_login.current_user.balance < bid:
+            flash(f"Insufficient funds. Cost: ${bid:.2f}", "error")
+            return jsonify({"success": False, "redirect": url_for("portfolio")})
+        portfolio_id = flask_login.current_user.portfolio_id
+        # 3. Deduct cost atomically
+        result = db.portfolios.update_one(
+            {"_id": portfolio_id, "balance": {"$gte": bid}},  # ensure enough balance
+            {"$inc": {"balance": -bid}},
         )
-    else:
-        db.portfolios.update_one(
-            {"_id": portfolio_id},
-            {
-                "$set": {
-                    f"positions.{asset_id}": {
-                        "market_question": question,
-                        "quantity": quantity,
-                        "avg_price": execution_price,
+        if result.matched_count == 0:
+            flash("Insufficient funds. Trade aborted.", "error")
+            return jsonify({"success": False, "redirect": url_for("portfolio")})
+
+        current_position = db.portfolios.find_one(
+            {"_id": portfolio_id, f"positions.{asset_id}": {"$exists": True}},
+            {f"positions.{asset_id}": 1},
+        )
+        if current_position:
+            # Asset exists → calculate new weighted average
+            old_q = current_position["positions"][asset_id]["quantity"]
+            old_avg = current_position["positions"][asset_id]["avg_price"]
+            new_q = old_q + quantity
+            new_avg = ((old_q * old_avg) + (quantity * execution_price)) / new_q
+
+            db.portfolios.update_one(
+                {"_id": portfolio_id},
+                {
+                    "$set": {
+                        f"positions.{asset_id}.quantity": new_q,
+                        f"positions.{asset_id}.avg_price": new_avg,
                     }
-                }
-            },
-            upsert=True,
-        )
+                },
+            )
+        else:
+            db.portfolios.update_one(
+                {"_id": portfolio_id},
+                {
+                    "$set": {
+                        f"positions.{asset_id}": {
+                            "market_question": question,
+                            "quantity": quantity,
+                            "avg_price": execution_price,
+                        }
+                    }
+                },
+                upsert=True,
+            )
 
-    flash(f"Bought {quantity} shares at {execution_price}", "success")
-    return redirect(url_for("portfolio"))
+        flash(
+            f"Executed bid {bid}. Bought {quantity} shares at {execution_price}",
+            "success",
+        )
+    except Exception as e:
+        print(f"Error in trade: {e}")
+    return jsonify({"success": True, "redirect": url_for("portfolio")})
 
 
 @app.route("/settings", methods=["GET", "POST"])

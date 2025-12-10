@@ -15,9 +15,9 @@
 
     <div class="market-header-meta">
       <div class="meta-item">
-        <span class="label">24h volume</span>
-        {% if market.volume24hr is defined %}
-        <span class="value">${{ "%.2f"|format(market.volume24hr) }}</span>
+        <span class="label">Total volume</span>
+        {% if market.volume is defined %}
+        <span class="value">${{ "%.3f"|format((market.volume|float)) }}</span>
         {% else %}
         <span class="value">N/A</span>
         {% endif %}
@@ -42,10 +42,6 @@
               No: {{ "%.0f"|format((market.outcomePrices[1] | float) * 100) }}%
             </span>
           </div>
-          <p class="hint">
-            This market resolves based on an external real-world outcome.
-            You can practice taking either side using paper trades.
-          </p>
         </div>
       </div>
 
@@ -121,27 +117,19 @@
 
             <div class="trade-summary">
               <div>
-                <span class="label">Est. price</span>
+                <span class="label">Live price</span>
                 <span class="value" id="est-price"
                     data-outcome-prices='{{ market.outcomePrices | tojson | safe }}'
                     data-assetIds='{{ market.clobTokenIds | tojson | safe }}'
-                    ${{ "%.2f"|format((market.outcomePrices[0] | float)) }} / share>
+                    ${{ "%.3f"|format((market.outcomePrices[0] | float)) }} / share>
                 </span>
-              </div>
-              <div>
-                <span class="label">Live price</span>
-                <span class="value" id="live-price">Loading...</span>
               </div>
             </div>
 
-            <button type="submit" class="btn-primary btn-full" id="submit-trade" disabled>
+            <button type="submit" class="btn-primary btn-full" id="submit-trade">
               Place trade
             </button>
 
-            <p class="hint">
-              This is a front-end preview only. Trading logic will be enabled
-              once the backend / API is connected.
-            </p>
           </form>
         </div>
       </div>
@@ -152,14 +140,6 @@
         </div>
         <div class="card-main">
           <ul class="meta-list">
-            <li>
-              <span class="label">Region</span>
-              <span class="value">{{ market.region }}</span>
-            </li>
-            <li>
-              <span class="label">Category</span>
-              <span class="value">{{ market.category }}</span>
-            </li>
             <li>
               <span class="label">Resolution</span>
               <span class="value">{{market.description}}</span>

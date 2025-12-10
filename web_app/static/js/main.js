@@ -3,11 +3,62 @@ console.log("PolyPaper frontend loaded");
 document.addEventListener("DOMContentLoaded", () => {
   // ... [Keep existing Trade Button Logic] ...
   const mockTradeBtn = document.querySelector(".trade-ticket .btn-primary");
+
   if (mockTradeBtn) {
-    mockTradeBtn.addEventListener("click", () => {
-      alert("Trading will be enabled once the backend/API is connected.");
+    mockTradeBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+
+      const tradeAmountInput = document.getElementById("trade-amount");
+      const activeBtn = document.querySelector(".toggle-group .chip-active");
+      const chosenIndex = activeBtn ? parseInt(activeBtn.dataset.index) : null;
+      const estPriceEl = document.getElementById("est-price");
+      const question = document.getElementsByClassName("page-title")[0].innerText
+      const assetIds = JSON.parse(estPriceEl.dataset.assetids || "[]");
+      const assetId = chosenIndex !== null ? assetIds[chosenIndex] : null;
+
+      const bidText = tradeAmountInput?.value?.trim();
+      const processedQuestion = question?.trim();
+      const bid = parseFloat(bidText);
+
+      if (!assetId || !bidText || isNaN(bid) || bid <= 0) {
+        alert("Please enter a valid bid amount.");
+        return;
+      }
+
+      try {
+        const resp = await fetch("/trade", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            asset_id: assetId,
+            bid: bid,
+            question: processedQuestion
+          }),
+        });
+
+        if (!resp.ok) {
+          const errText = await resp.text();
+          throw new Error(errText || "Trade failed");
+        }
+        const data = await resp.json();
+
+        if (data.success && data.redirect) {
+            // Redirect to portfolio page
+          window.location.href = data.redirect;
+        } else {
+          alert("Trade placed successfully!");
+        }
+
+      } catch (err) {
+        console.error("Trade error:", err);
+        alert(`Error placing trade: ${err.message}`);
+      }
     });
   }
+
+
 
   // ... [Keep existing Profile Menu Logic] ...
   const profileMenu = document.querySelector(".profile-menu");
@@ -25,6 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- START FIXED LIVE PRICE SECTION ---
   const toggleGroup = document.querySelector(".toggle-group");
   const estPriceEl = document.getElementById("est-price");
+  const tradeButton= document.getElementById("submit-trade");
 
   if (toggleGroup && estPriceEl) {
     console.log("Initializing Live Price Polling...");
@@ -55,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const live = latestPrices[assetId];
         const displayPrice = live !== undefined && live !== null ? live : fallback;
         console.log("Called Update")
-        estPriceEl.textContent = `$${displayPrice.toFixed(2)} / share`;
+        estPriceEl.textContent = `$${displayPrice.toFixed(3)} / share`;
       };
 
       const fetchCurrentPrice = async () => {
