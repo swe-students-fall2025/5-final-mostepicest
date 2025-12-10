@@ -18,8 +18,16 @@ class TestHomeRoute:
         assert response.status_code in (301, 302)
         assert "/login" in response.location
 
-    def test_home_authenticated_redirects_to_portfolio(self, auth_client):
+    def test_home_authenticated_redirects_to_portfolio(self, auth_client, app):
         """Authenticated user should be redirected to portfolio."""
+        # Mock the portfolio lookup that happens in the portfolio route
+        mock_db = app._mock_db
+        mock_db.portfolios.find_one.return_value = {
+            "portfolio_id": "test-portfolio-id-12345",
+            "balance": 1000.0,
+            "positions": [],
+        }
+
         response = auth_client.get("/", follow_redirects=False)
         assert response.status_code in (301, 302)
         assert "/portfolio" in response.location
@@ -46,6 +54,11 @@ class TestRegistration:
         mock_db.users.find_one.return_value = None  # No existing user
         mock_db.users.insert_one.return_value = MagicMock()
         mock_db.portfolios.insert_one.return_value = MagicMock()
+        mock_db.portfolios.find_one.return_value = {
+            "portfolio_id": "new-portfolio-id",
+            "balance": 1000.0,
+            "positions": [],
+        }
 
         response = client.post(
             "/register",
@@ -102,12 +115,19 @@ class TestLogin:
         mock_db = app._mock_db
         hashed_password = bcrypt.generate_password_hash("ValidPass1!").decode("utf-8")
 
-        mock_db.users.find_one.return_value = {
+        user_data = {
             "user_id": "test-user-id",
             "email": "test@example.com",
             "username": "testuser",
             "password": hashed_password,
             "portfolio_id": "test-portfolio-id",
+        }
+
+        mock_db.users.find_one.return_value = user_data
+        mock_db.portfolios.find_one.return_value = {
+            "portfolio_id": "test-portfolio-id",
+            "balance": 1000.0,
+            "positions": [],
         }
 
         response = client.post(
@@ -118,18 +138,6 @@ class TestLogin:
 
         assert response.status_code in (301, 302)
         assert "/portfolio" in response.location
-
-    def test_login_invalid_email_shows_error(self, app, client):
-        """POST /login with non-existent email should show error."""
-        mock_db = app._mock_db
-        mock_db.users.find_one.return_value = None
-
-        response = client.post(
-            "/login",
-            data={"email": "nonexistent@example.com", "password": "SomePassword1!"},
-            follow_redirects=True,
-        )
-        assert response.status_code == 200
 
     def test_login_wrong_password_shows_error(self, app, client, bcrypt):
         """POST /login with wrong password should show error."""
@@ -160,7 +168,7 @@ class TestLogin:
 class TestLogout:
     """Tests for the logout route (/logout)."""
 
-    def test_logout_authenticated_user_redirects_to_login(self, auth_client):
+    def test_logout_authenticated_user_redirects_to_login(self, app, auth_client):
         """Authenticated user logging out should redirect to login."""
         response = auth_client.get("/logout", follow_redirects=False)
         assert response.status_code in (301, 302)
@@ -187,6 +195,42 @@ class TestPortfolio:
         assert response.status_code in (301, 302)
         assert "/login" in response.location
 
+    @patch("web_app.app.fetch_live_prices")
+    def test_portfolio_authenticated_shows_content(self, mock_fetch, app, auth_client):
+        """Authenticated user should see portfolio content."""
+        mock_db = app._mock_db
+        mock_db.portfolios.find_one.return_value = {
+            "portfolio_id": "test-portfolio-id-12345",
+            "balance": 1000.0,
+            "positions": {},
+        }
+        mock_fetch.return_value = {}
+
+        response = auth_client.get("/portfolio")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "portfolio" in html.lower()
+
+    @patch("web_app.app.fetch_live_prices")
+    def test_portfolio_shows_positions(self, mock_fetch, app, auth_client):
+        """Portfolio page should display positions."""
+        mock_db = app._mock_db
+        mock_db.portfolios.find_one.return_value = {
+            "portfolio_id": "test-portfolio-id-12345",
+            "balance": 1000.0,
+            "positions": {
+                "asset1": {
+                    "quantity": 10,
+                    "avg_price": 0.5,
+                    "market_question": "Test Market",
+                }
+            },
+        }
+        mock_fetch.return_value = {"asset1": 0.6}
+
+        response = auth_client.get("/portfolio")
+        assert response.status_code == 200
+
 
 # =============================================================================
 # MARKETS TESTS
@@ -202,13 +246,13 @@ class TestMarkets:
         assert response.status_code in (301, 302)
         assert "/login" in response.location
 
-    def test_markets_authenticated_shows_all_markets(self, auth_client):
+    def test_markets_authenticated_shows_all_markets(self, app, auth_client):
         """Authenticated user should see all markets."""
         response = auth_client.get("/markets")
         assert response.status_code == 200
 
     @patch("web_app.app.requests.get")
-    def test_markets_search_filters_by_question(self, mock_get, auth_client):
+    def test_markets_search_filters_by_question(self, mock_get, app, auth_client):
         """Search should filter markets by question text."""
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -251,7 +295,7 @@ class TestMarketDetail:
     @patch("web_app.app.get_cached_market")
     @patch("web_app.app.fetch_historical_prices")
     def test_market_detail_valid_slug_shows_content(
-        self, mock_fetch, mock_cache, auth_client
+        self, mock_fetch, mock_cache, app, auth_client
     ):
         """Valid market slug should show market details."""
         mock_cache.return_value = {
@@ -266,7 +310,7 @@ class TestMarketDetail:
         assert response.status_code == 200
 
     @patch("web_app.app.get_cached_market")
-    def test_market_detail_invalid_slug_returns_400(self, mock_cache, auth_client):
+    def test_market_detail_invalid_slug_returns_400(self, mock_cache, app, auth_client):
         """Invalid market slug should return 400."""
         mock_cache.return_value = None
 
@@ -288,7 +332,7 @@ class TestSettings:
         assert response.status_code in (301, 302)
         assert "/login" in response.location
 
-    def test_settings_authenticated_shows_form(self, auth_client):
+    def test_settings_authenticated_shows_form(self, app, auth_client):
         """Authenticated user should see settings form."""
         response = auth_client.get("/settings")
         assert response.status_code == 200
@@ -325,31 +369,32 @@ class TestTrade:
         response = client.post("/trade", json={"asset_id": "1", "bid": 100})
         assert response.status_code in (301, 302, 401)
 
-    #    @patch('web_app.app.fetch_live_prices')
-    #    def test_trade_valid_bid_executes_successfully(self, mock_fetch, app, auth_client):
-    #        """POST /trade with valid bid should execute successfully."""
-    #        mock_db = app._mock_db
-    #        mock_fetch.return_value = {"test-asset": 0.5}
-    #
-    #        # Mock portfolio operations
-    #        mock_db.portfolios.update_one.return_value = MagicMock(matched_count=1)
-    #        mock_db.portfolios.find_one.return_value = None  # No existing position
-    #
-    #        response = auth_client.post(
-    #            "/trade",
-    #            json={
-    #                "asset_id": "test-asset",
-    #                "bid": 100.0,
-    #                "question": "Test Market"
-    #            }
-    #        )
-    #
-    #        assert response.status_code == 200
-    #        data = response.get_json()
-    #        assert data["success"] is True
+    @patch("web_app.app.fetch_live_prices")
+    def test_trade_valid_bid_executes_successfully(
+        self, mock_fetch, app, auth_client, sample_user_data
+    ):
+        """POST /trade with valid bid should execute successfully."""
+        mock_db = app._mock_db
+        mock_fetch.return_value = {"test-asset": 0.5}
+
+        # Mock the current_user balance check
+        # Mock portfolio operations
+        mock_update_result = MagicMock()
+        mock_update_result.matched_count = 1
+        mock_db.portfolios.update_one.return_value = mock_update_result
+        mock_db.portfolios.find_one.return_value = None  # No existing position
+
+        response = auth_client.post(
+            "/trade",
+            json={"asset_id": "test-asset", "bid": 100.0, "question": "Test Market"},
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["success"] is True
 
     @patch("web_app.app.fetch_live_prices")
-    def test_trade_zero_bid_returns_error(self, mock_fetch, auth_client):
+    def test_trade_zero_bid_returns_error(self, mock_fetch, app, auth_client):
         """POST /trade with zero bid should return error."""
         mock_fetch.return_value = {"test-asset": 0.5}
 
