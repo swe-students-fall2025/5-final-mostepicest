@@ -64,9 +64,18 @@ class User(flask_login.UserMixin):
 @login_manager.user_loader
 def load_user(user_id):
     u = db.users.find_one({"user_id": user_id})
-    if u:
-        return User(u["user_id"], u["email"], u["username"], u["portfolio_id"])
-    return None
+    if not u:
+        return None
+
+    portfolio_id = u.get("portfolio_id")  # may be None for older users
+    return User(u["user_id"], u["email"], u["username"], portfolio_id)
+
+
+# def load_user(user_id):
+#     u = db.users.find_one({"user_id": user_id})
+#     if u:
+#         return User(u["user_id"], u["email"], u["username"], u["portfolio_id"])
+#     return None
 
 
 def fetch_live_prices(token_ids: List[str]) -> Dict[str, float]:
