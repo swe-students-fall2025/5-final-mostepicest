@@ -5,7 +5,7 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-from api.ws_clob import PolymarketWS, app, asset_connections, asset_queues
+from api.price_api import app
 from fastapi import WebSocket
 from fastapi.testclient import TestClient
 

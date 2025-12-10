@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from api.clob_display import app, get_clob_prices
+from api.price_api import app, get_clob_prices
 from fastapi.testclient import TestClient
 
 client = TestClient(app)
