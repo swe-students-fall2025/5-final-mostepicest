@@ -38,9 +38,9 @@ def historical_key_builder(func, *args, **kwargs):
 
 # Fetch single asset from API with caching
 @cached(**DEFAULT_CACHE_SETTINGS, key_builder=historical_key_builder)
-async def fetch_historical(asset_id: str, interval: str = "max") -> Dict:
+async def fetch_historical(asset_id: str, interval: str = "1h", fidelity: int = 0) -> Dict:
     """Method to get historical price of an asset from polymarket"""
-    params = {"market": asset_id, "interval": interval}
+    params = {"market": asset_id, "interval": interval, "fidelity": fidelity}
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.get(HISTORICAL_PRICE_URL, params=params)
         resp.raise_for_status()
@@ -51,16 +51,16 @@ async def fetch_historical(asset_id: str, interval: str = "max") -> Dict:
 @app.get("/historical_prices")
 async def get_historical_prices(
     assets: List[str] = Query(..., description="Comma-separated list of asset IDs"),
-    interval: str = Query("max", description="Interval for historical data"),
+    interval: str = Query("1h", description="Interval for historical data"),
+    fidelity: int = Query(None, description="Minimum fidelity (number of data points)"),
 ):
     """
-    Example request: /historical_prices?assets=token_id_1,token_id_2&interval=1d
+    Example request: /historical_prices?assets=token_id_1,token_id_2&interval=1d&fidelity=10
     """
     if not assets:
         return {}
-
     # Fetch cached data per asset
-    tasks = [fetch_historical(asset_id=a, interval=interval) for a in assets]
+    tasks = [fetch_historical(asset_id=a, interval=interval, fidelity=fidelity) for a in assets]
     responses = await asyncio.gather(*tasks, return_exceptions=True)
 
     result = {}
@@ -68,6 +68,19 @@ async def get_historical_prices(
         if isinstance(data, Exception):
             print(f"Error fetching {asset}: {data}")
             continue
+        
+        # Apply fidelity filtering if specified
+        if fidelity is not None and isinstance(data, dict) and "history" in data:
+            history = data["history"]
+            if isinstance(history, list) and len(history) > fidelity:
+                # Sample every Nth point to get approximately 'fidelity' points
+                step = max(1, len(history) // fidelity)
+                filtered_history = [history[i] for i in range(0, len(history), step)]
+                # Always include the last point
+                if len(filtered_history) == 0 or filtered_history[-1] != history[-1]:
+                    filtered_history.append(history[-1])
+                data["history"] = filtered_history
+        
         result[asset] = data
 
     return result

@@ -62,7 +62,6 @@ async def search(q: str = Query(..., min_length=1), page: int = 1):
     """Helper to search markets"""
     try:
         data = await get_polymarket_search(q, page)
-        print(data)
         return JSONResponse(data)
     except Exception as e:
         logging.error("Search error: %s", e, exc_info=True)
