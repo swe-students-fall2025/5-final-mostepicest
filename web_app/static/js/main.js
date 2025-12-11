@@ -34,7 +34,8 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify({
             asset_id: assetId,
             bid: bid,
-            question: processedQuestion
+            question: processedQuestion,
+            side: chosenIndex === 1 ? "NO" : "YES",
           }),
         });
 

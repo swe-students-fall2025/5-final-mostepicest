@@ -59,7 +59,7 @@
     </thead>
     <tbody>
       {% for p in positions %}
-      {% set value = p.bet_amount + p.to_win %}
+      {% set value = p.market_value %}
       <tr>
         <td>{{ p.market }}</td>
         <td>{{ p.side }}</td>

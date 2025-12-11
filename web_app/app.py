@@ -92,22 +92,50 @@ def fetch_live_prices(token_ids: List[str]) -> Dict[str, float]:
     if not token_ids:
         return {}
 
-    try:
-        # CLOB expects a GET request with query parameters, not POST
-        params = {"tokens": ",".join(token_ids)}
-        resp = requests.get(f"{PRICE_SERVICE_URL}/clob", params=params, timeout=5)
-        resp.raise_for_status()  # raise exception for 4xx/5xx responses
+    # De-duplicate while preserving order to keep mapping stable
+    seen = set()
+    ordered_tokens = []
+    for t in token_ids:
+        if t in seen or t is None:
+            continue
+        seen.add(t)
+        ordered_tokens.append(str(t))
 
-        data = resp.json()
-        # Convert to mapping asset_id -> mid_price
-        prices = {token_ids[i]: data[i] for i in range(len(token_ids))}
-        return prices
-    except requests.RequestException as e:
-        print(f"Price Fetch Error: {e}")
-        return {}
-    except (ValueError, KeyError, TypeError) as e:
-        print(f"Data parsing error: {e}")
-        return {}
+    prices: Dict[str, float] = {}
+
+    for token in ordered_tokens:
+        try:
+            params = {"tokens": token}
+            resp = requests.get(f"{PRICE_SERVICE_URL}/clob", params=params, timeout=5)
+            resp.raise_for_status()
+            data = resp.json()
+
+            # Normalize single-token response to a float
+            price_val = None
+            if isinstance(data, dict):
+                # Try direct key, otherwise first value
+                if token in data:
+                    price_val = data[token]
+                elif len(data.values()) > 0:
+                    price_val = list(data.values())[0]
+            elif isinstance(data, list) and len(data) > 0:
+                price_val = data[0]
+
+            if price_val is None:
+                continue
+
+            try:
+                prices[str(token)] = float(price_val)
+            except (TypeError, ValueError):
+                continue
+        except requests.RequestException as e:
+            print(f"Price Fetch Error for token {token}: {e}")
+            continue
+        except Exception as e:
+            print(f"Unexpected price parse error for token {token}: {e}")
+            continue
+
+    return prices
 
 
 def fetch_historical_prices(asset_ids, interval="1h", fidelity=None):
@@ -298,12 +326,31 @@ def portfolio():
     total_pnl = 0.0  # Track total profit/loss
 
     for asset_id, info in positions.items():
-        # Use live price if available, else fallback to avg_price
-        current_price = float(live_prices.get(asset_id, info["avg_price"]))
+        side = info.get("side", "YES").upper()
+
+        # Use live price if available; choose the value that aligns with the side's avg
+        live_price_val = live_prices.get(asset_id)
+        current_price = info["avg_price"]
+        if live_price_val is not None:
+            try:
+                live_price = float(live_price_val)
+                # Some feeds may return the opposite side; pick the price closest to the avg
+                candidate = live_price
+                complement = 1 - live_price
+                current_price = (
+                    candidate
+                    if abs(candidate - info["avg_price"])
+                    <= abs(complement - info["avg_price"])
+                    else complement
+                )
+            except (TypeError, ValueError):
+                current_price = info["avg_price"]
 
         market_val = current_price * info["quantity"]
         cost_basis = info["avg_price"] * info["quantity"]
         pnl = market_val - cost_basis
+        # Potential profit if the outcome resolves in the user's favor
+        potential_profit = max((1 - info["avg_price"]) * info["quantity"], 0.0)
 
         total_pnl += pnl
         total_value += market_val
@@ -316,7 +363,9 @@ def portfolio():
                 "side": info.get("side", "YES"),
                 "bet_amount": cost_basis,
                 "quantity": info["quantity"],
-                "to_win": pnl,
+                "to_win": potential_profit,
+                "market_value": market_val,
+                "pnl": pnl,
             }
         )
 
@@ -455,7 +504,9 @@ def trade():
     asset_id = data.get("asset_id")
     bid = data.get("bid")
     question = data.get("question")
-    side = data.get("side", "YES")
+    side = (data.get("side") or "YES").upper()
+    if side not in ("YES", "NO"):
+        side = "YES"
 
     if not all([asset_id, bid, question]):
         flash("Missing trade parameters.", "error")
@@ -482,20 +533,26 @@ def trade():
         return jsonify({"success": False, "redirect": url_for("logout")})
 
     try:
-        # 1. Get current execution price from the pricing service
+        # Get current execution price from the pricing service
         price = fetch_live_prices([asset_id])
-        execution_price = float(price.get(asset_id))
-
-        if execution_price is None:
+        raw_price = price.get(asset_id)
+        if raw_price is None:
             flash("Could not get a current price for the market.", "error")
             return jsonify({"success": False})
+        try:
+            raw_price = float(raw_price)
+        except (TypeError, ValueError):
+            flash("Received an invalid price for the market.", "error")
+            return jsonify({"success": False})
 
-        # 2. Calculate quantity
-        # In this simple model, we assume buying shares of the 'Yes' outcome.
-        # Price is the probability, bid is the cost.
+        # Use the fetched price directly for the selected side token
+        execution_price = raw_price
+
+        # Calculate quantity for the selected side
+        # Price represents the probability (YES or NO depending on side); bid is the cost.
         quantity = bid / execution_price
 
-        # 3. Deduct cost atomically
+        # Deduct cost atomically
         # This update only proceeds if the balance is sufficient.
         result = db.portfolios.update_one(
             {
@@ -510,15 +567,15 @@ def trade():
             return jsonify({"success": False, "redirect": url_for("portfolio")})
 
         # --- START: Modification to update current_user balance ---
-        # 4. Refetch the updated portfolio to get the new balance
+        # Refetch the updated portfolio to get the new balance
         updated_portfolio = db.portfolios.find_one({"portfolio_id": portfolio_id})
 
-        # 5. Update the Flask-Login User object's balance property
+        # Update the Flask-Login User object's balance property
         if updated_portfolio:
             flask_login.current_user.balance = updated_portfolio["balance"]
         # --- END: Modification to update current_user balance ---
 
-        # 6. Update or create the position
+        # Update or create the position
         current_position = db.portfolios.find_one(
             {"portfolio_id": portfolio_id, f"positions.{asset_id}": {"$exists": True}},
         )
@@ -528,7 +585,7 @@ def trade():
             existing_pos = current_position["positions"][asset_id]
             existing_cost = existing_pos["total_cost"]
             existing_shares = existing_cost / existing_pos["avg_price"]
-            existing_side = existing_pos.get("side", "YES")
+            position_side = side
 
             new_total_cost = existing_cost + bid
             new_total_shares = existing_shares + quantity
@@ -539,7 +596,7 @@ def trade():
                 {"portfolio_id": portfolio_id},
                 {
                     "$set": {
-                        f"positions.{asset_id}.side": existing_side,
+                        f"positions.{asset_id}.side": position_side,
                         f"positions.{asset_id}.total_cost": new_total_cost,
                         f"positions.{asset_id}.avg_price": new_avg_price,
                         f"positions.{asset_id}.updated_at": datetime.now(timezone.utc),
