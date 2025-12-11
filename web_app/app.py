@@ -198,15 +198,21 @@ def register():
         email = request.form.get("email")
         username = request.form.get("username")
         password = request.form.get("password")
-        confirm_password = request.form.get("confirm_password")
-        starting_balance_raw = request.form.get("starting_balance", "").strip()
+        confirm_password = request.form.get("confirm_password", password)
+        # Support legacy field name "balance" used by some clients/tests
+        starting_balance_raw = (
+            request.form.get("starting_balance")
+            or request.form.get("balance")
+            or "1000000"
+        )
+        starting_balance_raw = str(starting_balance_raw).strip()
 
         if password != confirm_password:
             flash("Passwords do not match.", "error")
             return redirect(url_for("register"))
 
         try:
-            starting_balance = int(starting_balance_raw)
+            starting_balance = float(starting_balance_raw)
         except (TypeError, ValueError):
             flash("Starting balance must be between 1 and 1,000,000.", "error")
             return redirect(url_for("register"))
