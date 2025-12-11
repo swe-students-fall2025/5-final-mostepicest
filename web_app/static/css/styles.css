@@ -139,7 +139,7 @@ body {
 /*cards grid*/
 .portfolio-grid {
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
   margin-bottom: 24px;
 }
@@ -480,13 +480,6 @@ body {
   padding: 18px 20px 22px;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
   border: 1px solid #e0e7ff;
-}
-
-.positions-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
 }
 
 .positions-tabs {
@@ -861,9 +854,6 @@ body {
   align-items: stretch;
 }
 
-.historical-prices-container {
-=======
-
 .page-section {
   max-width: 1100px;
   margin: 0 auto;
@@ -1069,12 +1059,6 @@ body {
 @media (max-width: 900px) {
   .portfolio-grid {
     grid-template-columns: 1fr;
-  }
-
-  .positions-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
   }
 
   .page {

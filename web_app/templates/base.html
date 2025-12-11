@@ -19,11 +19,11 @@
       {% if not request.path.startswith('/login') and not request.path.startswith('/register') %}
         <div class="portfolio-summary">
           <span class="label">Portfolio</span>
-          <span class="value">$0.00</span>
+          <span class="value">${{ "%.2f"|format(header_portfolio_value) }}</span>
         </div>
         <div class="cash-summary">
           <span class="label">Cash</span>
-          <span class="value">$0.00</span>
+          <span class="value">${{ "%.2f"|format(header_cash_balance) }}</span>
         </div>
         <div class="profile-menu">
           <button class="profile-trigger" type="button" aria-label="Open settings menu">
@@ -59,11 +59,6 @@
    <a href="{{ url_for('markets') }}"
      class="{% if request.path.startswith('/markets') %}active-tab{% endif %}">
      Markets
-  </a>
-
-  <a href="{{ url_for('watchlist')}}"
-     class="{% if request.path.startswith('/watchlist') %}active-tab{% endif %}">
-     Watchlist
   </a>
   </nav>
   {% endif %}
