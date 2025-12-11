@@ -49,6 +49,8 @@
     <thead>
       <tr>
         <th>Market</th>
+        <th>Side</th>
+        <th>Shares</th>
         <th>Avg → Now</th>
         <th>Bet</th>
         <th>To win</th>
@@ -60,6 +62,8 @@
       {% set value = p.bet_amount + p.to_win %}
       <tr>
         <td>{{ p.market }}</td>
+        <td>{{ p.side }}</td>
+        <td>{{ "%.2f"|format(p.quantity) }}</td>
         <td>{{ "%.2f"|format(p.avg_price) }} → {{ "%.2f"|format(p.current_price) }}</td>
         <td>${{ "%.2f"|format(p.bet_amount) }}</td>
         <td>

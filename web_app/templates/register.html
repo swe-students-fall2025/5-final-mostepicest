@@ -14,7 +14,6 @@
             <li>Track a simulated balance and open positions across sessions.</li>
             <li>Save and document your trades</li>
             <li>Analyze your returns</li>
-            <li>Can Add More Later</li>
         </ul>
     </div>
 
@@ -44,6 +43,13 @@
             <label class="form-field">
                 <span class="field-label">Confirm password</span>
                 <input type="password" name="confirm_password" placeholder="Retype your password" minlength="8" required>
+                <span id="password-mismatch" style="display:none;color:#d9534f;font-size:0.9rem;">Password does not match</span>
+            </label>
+
+            <label class="form-field">
+                <span class="field-label">Set starting balance</span>
+                <input type="number" name="starting_balance" min="1" max="1000000" step="1" value="1000000" required>
+                <small class="field-hint">Choose between 1 and 1,000,000.</small>
             </label>
             
             <button class="btn-primary" type="submit">Create account</button>
@@ -54,5 +60,28 @@
 </section>
 
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.querySelector(".auth-form");
+    const passwordInput = form.querySelector('input[name="password"]');
+    const confirmInput = form.querySelector('input[name="confirm_password"]');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const mismatchMsg = document.getElementById("password-mismatch");
+
+    const validatePasswords = () => {
+        const pwd = passwordInput.value;
+        const confirm = confirmInput.value;
+        const mismatch = (pwd || confirm) && pwd !== confirm;
+
+        mismatchMsg.style.display = mismatch ? "block" : "none";
+        submitBtn.disabled = mismatch || !pwd || !confirm;
+    };
+
+    passwordInput.addEventListener("input", validatePasswords);
+    confirmInput.addEventListener("input", validatePasswords);
+    validatePasswords();
+});
+</script>
 
 {% endblock %}

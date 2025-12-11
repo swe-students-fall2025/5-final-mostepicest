@@ -94,6 +94,26 @@ class TestRegistration:
         assert response.status_code == 200
         # The app flashes "Email exists" with "error" category
 
+    def test_register_password_mismatch_redirects(self, app, client):
+        """POST /register with mismatched passwords should redirect back to form."""
+        mock_db = app._mock_db
+        mock_db.users.find_one.return_value = None
+
+        response = client.post(
+            "/register",
+            data={
+                "email": "test@example.com",
+                "username": "tester",
+                "password": "ValidPass1!",
+                "confirm_password": "DifferentPass2!",
+                "starting_balance": "500",
+            },
+            follow_redirects=False,
+        )
+
+        assert response.status_code in (301, 302)
+        assert "/register" in response.location
+
 
 # =============================================================================
 # LOGIN TESTS
@@ -354,6 +374,28 @@ class TestSettings:
 
         assert response.status_code == 200
         mock_db.users.update_one.assert_called_once()
+
+    def test_settings_reset_account_updates_balance_and_clears_positions(
+        self, app, auth_client
+    ):
+        """POST /settings reset should clear portfolio and set new balance."""
+        mock_db = app._mock_db
+        mock_update = MagicMock()
+        mock_update.matched_count = 1
+        mock_db.portfolios.update_one.return_value = mock_update
+
+        response = auth_client.post(
+            "/settings",
+            data={
+                "action": "reset_account",
+                "reset_starting_balance": "750000",
+            },
+            follow_redirects=False,
+        )
+
+        assert response.status_code in (301, 302)
+        assert "/settings" in response.location
+        mock_db.portfolios.update_one.assert_called_once()
 
 
 # =============================================================================

@@ -7,6 +7,7 @@
 
   <div class="settings-card">
     <form class="settings-form" id="settings-form" method="POST" action="{{ url_for('settings') }}">
+      <input type="hidden" name="action" value="update_profile">
       <!-- Email shows the current address. -->
       <label class="settings-field">
         <span class="field-label">Email</span>
@@ -31,5 +32,77 @@
       <button class="btn-primary btn-save disabled" type="submit" disabled>Save changes</button>
     </form>
   </div>
+
+  <h2>Reset Account</h2>
+  <div class="settings-card">
+    <form class="settings-form" id="reset-form" method="POST" action="{{ url_for('settings') }}">
+      <input type="hidden" name="action" value="reset_account">
+      <label class="settings-field">
+        <span class="field-label">Choose new starting balance</span>
+        <input
+          type="number"
+          name="reset_starting_balance"
+          min="1"
+          max="1000000"
+          step="1"
+          value="{{ current_balance or 1000000 }}"
+          required
+        >
+        <small class="field-note">Pick any amount between 1 and 1,000,000.</small>
+      </label>
+
+      <button class="btn-reset" type="submit">Reset Account</button>
+    </form>
+  </div>
 </section>
+
+<style>
+.btn-reset {
+  background: #d9534f;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-reset:hover {
+  background: #c64541;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const settingsForm = document.getElementById("settings-form");
+  const usernameInput = settingsForm.querySelector('input[name="username"]');
+  const saveBtn = settingsForm.querySelector(".btn-save");
+  const validationNote = settingsForm.querySelector('[data-for="username"]');
+
+  const resetForm = document.getElementById("reset-form");
+
+  // Enable save button only when username changes and is valid.
+  const originalUsername = usernameInput.value;
+  const validateUsername = () => {
+    const changed = usernameInput.value !== originalUsername;
+    const validLength = usernameInput.value.length >= 3 && usernameInput.value.length <= 24;
+    if (!validLength) {
+      validationNote.textContent = "Username must be 3-24 characters.";
+    } else {
+      validationNote.textContent = "";
+    }
+    saveBtn.disabled = !(changed && validLength);
+    saveBtn.classList.toggle("disabled", saveBtn.disabled);
+  };
+  usernameInput.addEventListener("input", validateUsername);
+  validateUsername();
+
+  // Confirmation guard before resetting account.
+  resetForm.addEventListener("submit", (event) => {
+    const confirmed = confirm("Are you sure you want to reset your account?");
+    if (!confirmed) {
+      event.preventDefault();
+    }
+  });
+});
+</script>
 {% endblock %}

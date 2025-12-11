@@ -43,7 +43,8 @@ If MongoDB is not installed locally, you may use MongoDB Atlas and update your `
 ```
 MONGO_URI=mongodb://localhost:27017/polypaper
 SECRET_KEY=dev-secret-key-change-me
-API_BASE_URL=http://localhost:8001
+SEARCH_URL=http://localhost:8001
+PRICE_SERVICE_URL=http://localhost:8002
 ```
 
 ## 2. Run the Web Application (Flask)
@@ -74,7 +75,7 @@ http://127.0.0.1:5000
 
 ### API Layer (api/)
 
-The project contains three FastAPI microservices, each running in its own container.
+The project contains two FastAPI microservices, each running in its own container.
 
 1. **Search API – `search_api.py`**  
    - Proxies Polymarket’s search endpoint  
@@ -82,13 +83,12 @@ The project contains three FastAPI microservices, each running in its own contai
    - Example: `http://localhost:8001/search?q=btc&page=1`
 
 
-2. **CLOB Display API – `clob_display.py`**  
-   - Fetches CLOB prices using `py_clob_client`  
+2. **Price API – `price_api.py`**  
+   - Provides current CLOB prices and historical price data  
    - Includes retry logic + Redis caching  
-   - Example: `http://localhost:8002/clob?tokens=123,456`
-
-3. **WebSocket CLOB API – `ws_clob.py`**  
-   - Exposes a WebSocket server on port `8003` for future real-time updates
+   - Examples:  
+     - `http://localhost:8002/clob?tokens=123,456`  
+     - `http://localhost:8002/historical_prices?assets=123&assets=456&interval=1h`
 
 ## Run all API services:
 
@@ -98,7 +98,7 @@ Navigate to the API directory:
 cd api
 ```
 
-Start all API services (Search API, CLOB API, WebSocket API) along with Redis:
+Start all API services (Search API, Price API) along with Redis:
 
 ```bash
 docker compose up --build
@@ -106,8 +106,7 @@ docker compose up --build
 
 Services will start at:
 * Search API → `http://localhost:8001`
-* CLOB Display API → `http://localhost:8002`
-* WebSocket API → `ws://localhost:8003`
+* Price API → `http://localhost:8002`
 * Redis → `localhost:6379`
 
 ## Quick Tests
@@ -118,7 +117,7 @@ Services will start at:
 curl "http://localhost:8001/search?q=btc&page=1"
 ```
 
-### Verify CLOB API:
+### Verify Price API (CLOB endpoint):
 
 ```bash
 curl "http://localhost:8002/clob?tokens=123"
@@ -176,8 +175,7 @@ pipenv run pytest
 These tests cover:
 * Search API response handling
 * Redis caching behavior
-* CLOB API responses and error cases
-* WebSocket behavior (where implemented)
+* Price API responses and error cases
 
 ## Production Deployment (Summary)
 
@@ -200,8 +198,7 @@ docker compose -f docker-compose.prod.yml up -d
 - **Production Services**
    - Flask Web App → port 80
    - Search API → port 8001
-   - CLOB API → port 8002
-   - WebSocket API → port 8003
+   - Price API → port 8002
    - Redis → port 6379
 
 Environment variables for production are loaded from the server's .env file.
@@ -211,7 +208,7 @@ Environment variables for production are loaded from the server's .env file.
 The system is composed of two major components:
 
 - **Web Application (`web_app/`)** — A Flask-based interface that manages users, sessions, authentication, and the UI.
-- **API Layer (`api/`)** — A set of FastAPI microservices that provide market search, CLOB price retrieval, and WebSocket-based real-time data, all backed by Redis caching.
+- **API Layer (`api/`)** — Two FastAPI microservices that provide market search and CLOB price retrieval (with historical pricing), backed by Redis caching.
 
 Poly Paper is designed as a modular system: the UI interacts with separate, containerized services that proxy and cache Polymarket data. This separation enables flexible scaling, clearer responsibility boundaries, and an easier path for full paper-trade simulation.
 
@@ -225,7 +222,6 @@ Poly Paper is designed as a modular system: the UI interacts with separate, cont
 - **Fast API Microservices**
   - Proxy Polymarket APIs
   - Redis caching for performance
-  - Real-time updates via WebSockets
 
 - **Supporting Infrastructure**
    - **MongoDB** — stores user accounts, hashed passwords, and metadata  
@@ -237,7 +233,7 @@ Poly Paper is designed as a modular system: the UI interacts with separate, cont
 
 1. User interacts with Flask UI.
 2. Flask handles auth + UI rendering.
-3. When market data is needed, the frontend (eventually) will call the API microservices via HTTP/WebSocket.
+3. When market data is needed, the frontend (eventually) will call the API microservices over HTTP.
 4. APIs services fetch live data from Polymarket or return cached results from Redis.
 5. The data flows back to the frontend to render market/price information.
 
