@@ -198,7 +198,23 @@ def register():
         email = request.form.get("email")
         username = request.form.get("username")
         password = request.form.get("password")
-        starting_balance = 1000000
+        confirm_password = request.form.get("confirm_password")
+        starting_balance_raw = request.form.get("starting_balance", "").strip()
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return redirect(url_for("register"))
+
+        try:
+            starting_balance = int(starting_balance_raw)
+        except (TypeError, ValueError):
+            flash("Starting balance must be between 1 and 1,000,000.", "error")
+            return redirect(url_for("register"))
+
+        if not 1 <= starting_balance <= 1_000_000:
+            flash("Starting balance must be between 1 and 1,000,000.", "error")
+            return redirect(url_for("register"))
+
         if db.users.find_one({"email": email}):
             flash("Email exists", "error")
             return redirect(url_for("register"))
@@ -291,6 +307,7 @@ def portfolio():
                 "market": info.get("market_question", "Unknown Market"),
                 "avg_price": info["avg_price"],
                 "current_price": current_price,
+                "side": info.get("side", "YES"),
                 "bet_amount": cost_basis,
                 "quantity": info["quantity"],
                 "to_win": pnl,
@@ -432,6 +449,7 @@ def trade():
     asset_id = data.get("asset_id")
     bid = data.get("bid")
     question = data.get("question")
+    side = data.get("side", "YES")
 
     if not all([asset_id, bid, question]):
         flash("Missing trade parameters.", "error")
@@ -504,6 +522,7 @@ def trade():
             existing_pos = current_position["positions"][asset_id]
             existing_cost = existing_pos["total_cost"]
             existing_shares = existing_cost / existing_pos["avg_price"]
+            existing_side = existing_pos.get("side", "YES")
 
             new_total_cost = existing_cost + bid
             new_total_shares = existing_shares + quantity
@@ -514,6 +533,7 @@ def trade():
                 {"portfolio_id": portfolio_id},
                 {
                     "$set": {
+                        f"positions.{asset_id}.side": existing_side,
                         f"positions.{asset_id}.total_cost": new_total_cost,
                         f"positions.{asset_id}.avg_price": new_avg_price,
                         f"positions.{asset_id}.updated_at": datetime.now(timezone.utc),
@@ -529,6 +549,7 @@ def trade():
                     "$set": {
                         f"positions.{asset_id}": {
                             "market_question": question,
+                            "side": side,
                             "quantity": quantity,
                             "total_cost": bid,
                             "avg_price": execution_price,
@@ -555,13 +576,58 @@ def trade():
 @flask_login.login_required
 def settings():
     if request.method == "POST":
+        action = request.form.get("action", "update_profile")
+
+        if action == "reset_account":
+            reset_balance_raw = request.form.get("reset_starting_balance", "").strip()
+            try:
+                new_balance = int(reset_balance_raw)
+            except (TypeError, ValueError):
+                flash("Starting balance must be between 1 and 1,000,000.", "error")
+                return redirect(url_for("settings"))
+
+            if not 1 <= new_balance <= 1_000_000:
+                flash("Starting balance must be between 1 and 1,000,000.", "error")
+                return redirect(url_for("settings"))
+
+            result = db.portfolios.update_one(
+                {"portfolio_id": flask_login.current_user.portfolio_id},
+                {
+                    "$set": {
+                        "balance": new_balance,
+                        "positions": {},
+                        "transaction_history": {},
+                        "updated_at": datetime.now(timezone.utc),
+                    }
+                },
+            )
+
+            if result.matched_count == 0:
+                flash("Portfolio not found for reset.", "error")
+                return redirect(url_for("settings"))
+
+            flask_login.current_user.balance = new_balance
+            flash("Account reset completed.", "success")
+            return redirect(url_for("settings"))
+
+        # Default profile update path
         username = request.form.get("username", "").strip()
+        if not 3 <= len(username) <= 24:
+            flash("Username must be 3-24 characters.", "error")
+            return redirect(url_for("settings"))
+
         db.users.update_one(
             {"user_id": flask_login.current_user.id}, {"$set": {"username": username}}
         )
         flask_login.current_user.username = username
         flash("Updated", "success")
-    return render_template("settings.html")
+
+    portfolio = db.portfolios.find_one(
+        {"portfolio_id": flask_login.current_user.portfolio_id}
+    )
+    current_balance = portfolio.get("balance", 0.0) if portfolio else 0.0
+
+    return render_template("settings.html", current_balance=current_balance)
 
 
 if __name__ == "__main__":
