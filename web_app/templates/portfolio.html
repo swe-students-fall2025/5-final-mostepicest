@@ -6,12 +6,12 @@
 <section class="portfolio-grid">
   <div class="card portfolio-card">
     <div class="card-header">
-      <span class="card-title">Portfolio</span>
-      <span class="card-subtitle">Today</span>
+      <span class="card-title">Portfolio Value</span>
+      <span class="card-subtitle">Total Value</span>
     </div>
     <div class="card-main">
       <div class="card-value">
-        ${{ "%.2f"|format(current_portfolio.balance) }}
+        ${{ "%.2f"|format(current_user.total_value) }}
       </div>
     </div>
   </div>
@@ -26,17 +26,18 @@
         ${{ "%.2f"|format(current_user.balance) }}
       </div>
     </div>
-    <button class="btn-outline">Withdraw</button>
   </div>
 
   <div class="card pl-card">
     <div class="card-header">
-      <span class="card-title">Profit/Loss</span>
-      <span class="card-subtitle">Past Month</span>
+      <span class="card-title">All Time P&L</span>
+      <span class="card-subtitle">Profit/Loss</span>
     </div>
     <div class="card-main">
-      <div class="card-value">$0.00</div>
-    </div>
+      <div class="card-value {{ 'positive' if current_user.change_today >= 0 else 'negative' }}">
+        {% if current_user.change_today >= 0 %}▲{% else %}▼{% endif %}
+        ${{ "%.2f"|format(current_user.change_today) }}
+      </div>
     </div>
   </div>
 </section>

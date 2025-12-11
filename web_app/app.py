@@ -68,7 +68,8 @@ def load_user(user_id):
         return None
 
     portfolio_id = u.get("portfolio_id")  # may be None for older users
-    return User(u["user_id"], u["email"], u["username"], portfolio_id)
+    balance = u.get("balance", 0.0)  # Get balance from MongoDB, default to 0.0
+    return User(u["user_id"], u["email"], u["username"], portfolio_id, balance)
 
 
 # def load_user(user_id):
@@ -147,6 +148,44 @@ def fetch_historical_prices(asset_ids, interval="1h", fidelity=None):
     return {}
 
 
+@app.context_processor
+def inject_portfolio_data():
+    """Make portfolio value and balance available to all templates"""
+    if flask_login.current_user.is_authenticated:
+        portfolio_id = flask_login.current_user.portfolio_id
+        if portfolio_id:
+            try:
+                portfolio = db.portfolios.find_one({"portfolio_id": portfolio_id})
+                if portfolio:
+                    current_balance = portfolio.get("balance", 0.0)
+                    positions = portfolio.get("positions", {})
+                    
+                    # Calculate total portfolio value
+                    total_value = 0
+                    if positions:
+                        asset_ids = list(positions.keys())
+                        live_prices = fetch_live_prices(asset_ids)
+                        
+                        for asset_id, info in positions.items():
+                            # Use live price if available, else fallback to avg_price
+                            current_price = float(live_prices.get(asset_id, info.get("avg_price", 0.0)))
+                            market_val = current_price * info.get("quantity", 0.0)
+                            total_value += market_val
+                    
+                    return {
+                        "header_portfolio_value": total_value,
+                        "header_cash_balance": current_balance
+                    }
+            except Exception as e:
+                print(f"Error calculating portfolio data for header: {e}")
+    
+    # Default values if not authenticated or error occurs
+    return {
+        "header_portfolio_value": 0.0,
+        "header_cash_balance": 0.0
+    }
+
+
 @app.route("/")
 def home():
     if flask_login.current_user.is_authenticated:
@@ -220,18 +259,21 @@ def logout():
 def portfolio():
     portfolio_id = flask_login.current_user.portfolio_id
 
-    # 1. Get Positions from DB
+    # 1. Get Portfolio from DB
     portfolio = db.portfolios.find_one({"portfolio_id": portfolio_id})
+    
+    # Get balance from portfolio object
+    current_balance = portfolio.get("balance", 0.0) if portfolio else 0.0
 
     # 2. Get Real Prices for these assets
-    positions = portfolio["positions"]
+    positions = portfolio["positions"] if portfolio else {}
     print(portfolio)
     asset_ids = list(positions.keys())
     live_prices = fetch_live_prices(asset_ids)
     print(asset_ids)
     # 3. Calculate Stats
     portfolio_display = []
-    total_value = flask_login.current_user.balance
+    total_value = 0
     total_pnl = 0.0  # Track total profit/loss
 
     for asset_id, info in positions.items():
@@ -259,7 +301,7 @@ def portfolio():
     # 4. Construct User View Data
     user_view = {
         "username": flask_login.current_user.username,
-        "balance": flask_login.current_user.balance,
+        "balance": current_balance,
         "total_value": total_value,
         "change_today": total_pnl,
     }
