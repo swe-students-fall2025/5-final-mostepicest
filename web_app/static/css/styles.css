@@ -482,13 +482,6 @@ body {
   border: 1px solid #e0e7ff;
 }
 
-.positions-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-}
-
 .positions-tabs {
   display: flex;
   gap: 8px;
@@ -1069,12 +1062,6 @@ body {
 @media (max-width: 900px) {
   .portfolio-grid {
     grid-template-columns: 1fr;
-  }
-
-  .positions-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
   }
 
   .page {

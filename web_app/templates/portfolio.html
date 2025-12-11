@@ -13,9 +13,17 @@
       <div class="card-value">
         ${{ "%.2f"|format(current_portfolio.balance) }}
       </div>
-      <div class="card-change {{ 'positive' if current_user.change_today >= 0 else 'negative' }}">
-        {% if current_user.change_today >= 0 %}▲{% else %}▼{% endif %}
-        ${{ "%.2f"|format(current_user.change_today) }}
+    </div>
+  </div>
+
+  <div class="card balance-card">
+    <div class="card-header">
+      <span class="card-title">Cash Balance</span>
+      <span class="card-subtitle">Cash Available</span>
+    </div>
+    <div class="card-main">
+      <div class="card-value">
+        ${{ "%.2f"|format(current_user.balance) }}
       </div>
     </div>
     <button class="btn-outline">Withdraw</button>
@@ -29,28 +37,11 @@
     <div class="card-main">
       <div class="card-value">$0.00</div>
     </div>
-    <div class="time-toggle">
-      <button class="chip chip-active">1D</button>
-      <button class="chip">1W</button>
-      <button class="chip">1M</button>
-      <button class="chip">ALL</button>
     </div>
   </div>
 </section>
 
 <section class="positions-section">
-  <div class="positions-header">
-    <div class="positions-tabs">
-      <button class="tab tab-active">Positions</button>
-      <button class="tab">Open orders</button>
-      <button class="tab">History</button>
-    </div>
-
-    <div class="positions-search">
-      <input type="text" placeholder="Search positions">
-      <button class="btn-filter">Current value ▾</button>
-    </div>
-  </div>
 
   {% if positions %}
   <table class="positions-table">

@@ -60,11 +60,6 @@
      class="{% if request.path.startswith('/markets') %}active-tab{% endif %}">
      Markets
   </a>
-
-  <a href="{{ url_for('watchlist')}}"
-     class="{% if request.path.startswith('/watchlist') %}active-tab{% endif %}">
-     Watchlist
-  </a>
   </nav>
   {% endif %}
 
