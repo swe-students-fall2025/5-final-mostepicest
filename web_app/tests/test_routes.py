@@ -251,6 +251,63 @@ class TestPortfolio:
         response = auth_client.get("/portfolio")
         assert response.status_code == 200
 
+    @patch("web_app.app.fetch_live_prices")
+    def test_portfolio_uses_side_price_for_no_positions(
+        self, mock_fetch, app, auth_client
+    ):
+        """Positions should use the fetched price for their asset/side."""
+        mock_db = app._mock_db
+        mock_db.portfolios.find_one.return_value = {
+            "portfolio_id": "test-portfolio-id-12345",
+            "balance": 1000.0,
+            "positions": {
+                "asset-no": {
+                    "quantity": 1000,
+                    "avg_price": 0.87,
+                    "market_question": "Test Market",
+                    "side": "NO",
+                }
+            },
+        }
+        # Fetched price for NO token is 0.88, should display 0.88
+        mock_fetch.return_value = {"asset-no": 0.88}
+
+        response = auth_client.get("/portfolio")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "0.87 \u2192 0.88" in html  # Avg -> Now
+        assert "+$130.00" in html  # Potential profit
+        assert "$880.00" in html  # Current value
+
+    @patch("web_app.app.fetch_live_prices")
+    def test_portfolio_corrects_flipped_prices_using_avg_anchor(
+        self, mock_fetch, app, auth_client
+    ):
+        """
+        If the live price feed returns the opposite side, we choose the price
+        closest to the position's average price.
+        """
+        mock_db = app._mock_db
+        mock_db.portfolios.find_one.return_value = {
+            "portfolio_id": "test-portfolio-id-12345",
+            "balance": 1000.0,
+            "positions": {
+                "asset-yes": {
+                    "quantity": 1000,
+                    "avg_price": 0.13,
+                    "market_question": "Test Market",
+                    "side": "YES",
+                }
+            },
+        }
+        # Feed returns 0.87 (wrong side); logic should flip back to 0.13
+        mock_fetch.return_value = {"asset-yes": 0.87}
+
+        response = auth_client.get("/portfolio")
+        assert response.status_code == 200
+        html = response.data.decode("utf-8")
+        assert "0.13 \u2192 0.13" in html
+
 
 # =============================================================================
 # MARKETS TESTS
@@ -448,6 +505,52 @@ class TestTrade:
         assert response.status_code == 200
         data = response.get_json()
         assert data["success"] is False
+
+    @patch("web_app.app.fetch_live_prices")
+    def test_trade_stores_submitted_side(self, mock_fetch, app, auth_client):
+        """Trade should persist the side sent from the client (YES/NO)."""
+        mock_db = app._mock_db
+        asset_id = "asset-no"
+        portfolio_id = "test-portfolio-id-12345"
+        mock_fetch.return_value = {asset_id: 0.4}
+
+        # find_one is called three times within the trade route
+        portfolio_initial = {
+            "portfolio_id": portfolio_id,
+            "balance": 1000.0,
+            "positions": {},
+        }
+        portfolio_after_debit = {
+            "portfolio_id": portfolio_id,
+            "balance": 900.0,
+            "positions": {},
+        }
+        mock_db.portfolios.find_one.side_effect = [
+            portfolio_initial,
+            portfolio_after_debit,
+            None,
+        ]
+
+        # update_one is invoked twice: once for balance decrement, once for position upsert
+        mock_db.portfolios.update_one.side_effect = [
+            MagicMock(matched_count=1),
+            MagicMock(),
+        ]
+
+        response = auth_client.post(
+            "/trade",
+            json={"asset_id": asset_id, "bid": 100, "question": "Test Q", "side": "NO"},
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["success"] is True
+
+        # The final position update should include the provided side
+        position_update_call = mock_db.portfolios.update_one.call_args_list[-1]
+        update_doc = position_update_call[0][1]
+        set_fields = update_doc.get("$set", {})
+        assert set_fields[f"positions.{asset_id}"]["side"] == "NO"
 
 
 # =============================================================================
