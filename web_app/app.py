@@ -106,9 +106,7 @@ def fetch_live_prices(token_ids: List[str]) -> Dict[str, float]:
     for token in ordered_tokens:
         try:
             params = {"tokens": token}
-            resp = requests.get(
-                f"{PRICE_SERVICE_URL}/clob", params=params, timeout=5
-            )
+            resp = requests.get(f"{PRICE_SERVICE_URL}/clob", params=params, timeout=5)
             resp.raise_for_status()
             data = resp.json()
 
